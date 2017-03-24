@@ -4,11 +4,24 @@ This section is about understanding the paper *MCMC Using Hamiltonian Dynamics*,
 
 ## Simple Gaussian Results
 
-Section 5.2.1.3 example.
+### Univariate Gaussian
+
+Section 5.2.1.3 example. Not much to say, except I really have to remember to use `astype('float32')` to avoid getting weird numpy errors with integers versus floats.
 
 ![simple_gaussians](draft_figures/univariate_gaussians.png?raw=true)
 
+### Bivariate Gaussian, One Sample
 
 Section 5.3.3.1 example. This is only for ONE sample to be drawn, which involves a 25-step leapfrog.
 
 ![bivariate_gaussian_1](draft_figures/bivariate_gaussians_one_sample.png?raw=true)
+
+Here's a new graph (not in Neal's paper) which I used for grad_U (the gradients for the momentum), though it might be the negative of that:
+
+![bivariate_gaussian_2](draft_figures/bivariate_gaussians_gradients.png?raw=true)
+
+I'm not sure what to think of this. However, understanding the previous figure is easier because the update is just q = q + eps\*p. In other words, p helps to "guide" q to where it should go, which might be why it's called "momentum!" Think: if q is at the origin, and p is at [1,1], then the update will result in q = [eps,eps], moving towards the direction of p. Thus, the movement of q, I understand. The movement of p in the first place is a little harder to process. I need to think a little more about this.
+
+### Bivariate Gaussian, Multiple Samples
+
+TODO
