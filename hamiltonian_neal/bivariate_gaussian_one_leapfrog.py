@@ -91,7 +91,7 @@ def plot(positions, momentums, hamiltonians, grads_m, figdir="draft_figures/"):
     plt.tight_layout()
     plt.savefig(FIG_DIR+"bivariate_gaussians_one_sample.png")
 
-    fig = plt.figure(figsize=(8,6))
+    fig = plt.figure(figsize=(6,4))
     plt.title("Momentum Gradients", fontsize=25)
     plt.plot(grads_m[0,:], '-yo', label='First Coord.')
     plt.plot(grads_m[1,:], '-ko', label='Second Coord.')
