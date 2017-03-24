@@ -51,6 +51,7 @@ def run_one_sample(eps, L):
 
     # Now do the leapfrog stuff.
     p = p - (0.5*eps) * grad_U(q, cov) 
+    grads_m = grad_U(q, cov)
 
     for i in range(L):
         q = q + eps * p
@@ -59,35 +60,45 @@ def run_one_sample(eps, L):
             p = p - eps * grad_U(q, cov)
             momentums = np.hstack((momentums, p))
             hamiltonians.append(f_H(q, p, cov))
+            grads_m = np.hstack((grads_m, grad_U(q, cov)))
 
     p = p - (0.5*eps) * grad_U(q, cov)
+    grads_m = np.hstack((grads_m, grad_U(q, cov)))
     momentums = np.hstack((momentums, p))
     hamiltonians.append(f_H(q, p, cov))
     p = -p
 
     hamiltonians = np.array(hamiltonians)
-    return positions, momentums, hamiltonians
+    return positions, momentums, hamiltonians, grads_m
 
 
-def plot(positions, momentums, hamiltonians, figdir="draft_figures/"):
-    """  Plotting!!! """
+def plot(positions, momentums, hamiltonians, grads_m, figdir="draft_figures/"):
+    """ 
+    This creates two plots. One is to match Neal's figure. The other is for
+    understanding the gradients of the momentums. 
+    """
     fig, axarr = plt.subplots(1,3, figsize=(15,4.5))
-
     axarr[0].plot(positions[0,:], positions[1,:], '-ro')
-    axarr[0].set_title("Position Coordinates")
+    axarr[0].set_title("Position Coordinates", fontsize=24)
     axarr[0].set_xlim([-2.5,2.5])
     axarr[0].set_ylim([-2.5,2.5])
     axarr[1].plot(momentums[0,:], momentums[1,:], '-ro')
-    axarr[1].set_title("Momentum Coordinates")
+    axarr[1].set_title("Momentum Coordinates", fontsize=24)
     axarr[1].set_xlim([-2.5,2.5])
     axarr[1].set_ylim([-2.5,2.5])
     axarr[2].plot(hamiltonians, '-ro')
-    axarr[2].set_title("Value of Hamiltonian)")
-
+    axarr[2].set_title("Value of Hamiltonian", fontsize=24)
     plt.tight_layout()
     plt.savefig(FIG_DIR+"bivariate_gaussians_one_sample.png")
 
+    fig = plt.figure(figsize=(8,6))
+    plt.title("Momentum Gradients", fontsize=25)
+    plt.plot(grads_m[0,:], '-yo', label='First Coord.')
+    plt.plot(grads_m[1,:], '-ko', label='Second Coord.')
+    plt.ylim([-10,10])
+    plt.legend(loc='lower right')
+    plt.savefig(FIG_DIR+"bivariate_gaussians_gradients.png")
 
 if __name__ == "__main__":
-    positions, momentums, hamiltonians = run_one_sample(eps=0.25, L=24)
-    plot(positions, momentums, hamiltonians)
+    positions, momentums, hamiltonians, grads_m = run_one_sample(eps=0.25, L=24)
+    plot(positions, momentums, hamiltonians, grads_m)
