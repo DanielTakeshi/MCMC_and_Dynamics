@@ -18,7 +18,7 @@ Section 5.3.3.1 example. This is only for ONE sample to be drawn, which involves
 
 And the error is bounded, in fact here is a 200-step leapfrog:
 
-![bivariate_gaussian_2](draft_figures/bivariate_gaussians_one_sample_200steps.pngraw=true)
+![bivariate_gaussian_2](draft_figures/bivariate_gaussians_one_sample_200steps.png?raw=true)
 
 Looks cool, right?
 
