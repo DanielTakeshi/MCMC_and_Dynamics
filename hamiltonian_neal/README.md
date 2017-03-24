@@ -16,11 +16,15 @@ Section 5.3.3.1 example. This is only for ONE sample to be drawn, which involves
 
 ![bivariate_gaussian_1](draft_figures/bivariate_gaussians_one_sample.png?raw=true)
 
-Here's a new graph (not in Neal's paper) which I used for grad_U (the gradients for the momentum), though it might be the negative of that:
+And the error is bounded, in fact here is a 200-step leapfrog:
 
-![bivariate_gaussian_2](draft_figures/bivariate_gaussians_gradients.png?raw=true)
+![bivariate_gaussian_2](draft_figures/bivariate_gaussians_one_sample_200steps.pngraw=true)
 
-I'm not sure what to think of this. However, understanding the previous figure is easier because the update is just q = q + eps\*p. In other words, p helps to "guide" q to where it should go, which might be why it's called "momentum!" Think: if q is at the origin, and p is at [1,1], then the update will result in q = [eps,eps], moving towards the direction of p. Thus, the movement of q, I understand. The movement of p in the first place is a little harder to process. I need to think a little more about this.
+Looks cool, right?
+
+I also have gradient graphs not in this paper, for gradients of the position variables. However, I'm not sure what to make of them, they just oscillate.
+
+I'm not sure what to think of this. However, understanding the figures that are like those in Neal's paper is easier because the update is just q = q + eps\*p. In other words, p helps to "guide" q to where it should go, which might be why it's called "momentum!" Think: if q is at the origin, and p is at [1,1], then the update will result in q = [eps,eps], moving towards the direction of p. Thus, the movement of q, I understand. The movement of p in the first place is a little harder to process. I need to think a little more about this.
 
 ### Bivariate Gaussian, Multiple Samples
 
