@@ -28,4 +28,8 @@ I'm not sure what to think of this. However, understanding the figures that are 
 
 ### Bivariate Gaussian, Multiple Samples
 
-TODO
+TODO This is a WIP. I am trying to follow Neal's settings, but for some reason I am getting weird results. The acceptance rates are too low. I will double check the leapfrog code because the Hamiltonians shoudn't be fluctuating this much, right? If they follow the pattern from the one-sample case above, they should remain roughly at the 2.02 level (well, adjusting for the 0.98 covariance here). BTW, we can't do a covariance with diagonals greater than 1, since that wouldn't be a positive definite matrix.
+
+I also need to get the random walk done ...
+
+![bivariate_gaussian_many_1](draft_figures/bivariate_gaussians_many_samples.png?raw=true)
