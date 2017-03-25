@@ -28,8 +28,25 @@ I'm not sure what to think of this. However, understanding the figures that are 
 
 ### Bivariate Gaussian, Multiple Samples
 
-TODO This is a WIP. I am trying to follow Neal's settings, but for some reason I am getting weird results. The acceptance rates are too low. I will double check the leapfrog code because the Hamiltonians shoudn't be fluctuating this much, right? If they follow the pattern from the one-sample case above, they should remain roughly at the 2.02 level (well, adjusting for the 0.98 covariance here). BTW, we can't do a covariance with diagonals greater than 1, since that wouldn't be a positive definite matrix.
+Hmmmm ... I can't quite replicate Neal's result. I'm getting acceptance rates of
+about 0.5-0.6 using his reported settings. I had to tune the step size epsilon
+and the number of leapfrog steps L, but I can get something that *looks* good,
+and certainly looks better than a random walk. 
 
-Fortunately, the random walk seems to work. I did 500 points, and am showing every 20th. He did 400 points but otherwise did the same thing; I just wanted to run longer. In fact, my acceptance rate seems to match his, so that's good!
+I wonder, how can we get an acceptance rate of 0.91 if this example is very
+similar to the previous one, and there, Neal notes that the acceptance rate for
+that last sample is 0.66 (see bottom of Section 5.3.3.1). Thus it seems odd that
+we would always get high acceptance rates (i.e. close to one). 
+
+I may double-check this leapfrog code later but I think it's exactly the same as
+his pseudocode and in my earlier code. Even so, the Hamiltonians seem to be
+fluctuating a bit too much for me, but who knows? 
+
+Note to self: we can't do a covariance with diagonals greater than 1, since that
+wouldn't be a positive definite matrix.
+
+Fortunately, the random walk seems to work. I did 400 points and am showing
+every 20th, like he did. Our rejection rates appear to match. (The number here
+in parentheses are actually the *acceptance* rates.)
 
 ![bivariate_gaussian_many_1](draft_figures/bivariate_gaussians_many_samples.png?raw=true)

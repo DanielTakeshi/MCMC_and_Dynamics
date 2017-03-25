@@ -18,11 +18,6 @@ def f_H(q, p, cov):
     return 0.5 * ((q.T).dot(np.linalg.inv(cov)).dot(q) + (p.T).dot(p))
 
 
-def f_U(q, cov):
-    """ The U term within the Hamiltonian function. """
-    return 0.5 * (q.T).dot(np.linalg.inv(cov)).dot(q)
-
-
 def grad_U(q, cov):
     """ The grad_U term. """
     return (np.linalg.inv(cov)).dot(q)
@@ -35,7 +30,7 @@ def leapfrog(current_q, cov, eps, L):
     better check this because the acceptance rates look off.
     """
     q = np.copy(current_q)
-    p = np.random.normal(size=q.shape)
+    p = np.random.multivariate_normal(mean=np.array([0,0]), cov=np.eye(2)).reshape((2,1)) 
     current_p = np.copy(p)
 
     p = p - (0.5*eps) * grad_U(q, cov) 
@@ -49,7 +44,7 @@ def leapfrog(current_q, cov, eps, L):
     current_H = f_H(current_q, current_p, cov)
     proposed_H = f_H(q, p, cov)
     test_stat = np.exp(-proposed_H + current_H)
-    if (np.random.rand() < test_stat):
+    if (np.random.rand() < test_stat[0,0]):
         return (q, 1, proposed_H[0]) # accept proposed sample
     else:
         return (current_q, 0, current_H[0])
@@ -84,6 +79,8 @@ def run_samples_rw(s, cov_rw, cov_distr, N):
 
     p(q')/p(q) = exp(-0.5*(q')^T*inv(cov_distr)*(q')) / exp(-0.5*q^T*inv(cov_distr)*q)
                = exp( -0.5*(q')^T*inv(cov_distr)*(q') + 0.5*q^T*inv(cov_distr)*q )
+
+    I'm pretty sure this is right! The results look good ...
     """
     positions = np.zeros((2,N))
     acc_rate = 0.0
@@ -94,8 +91,9 @@ def run_samples_rw(s, cov_rw, cov_distr, N):
         prop_q = np.random.multivariate_normal(mean=curr_q.reshape(2,), cov=cov_rw).reshape((2,1))
         term_prop = 0.5 * (prop_q.T).dot(cov_inv).dot(prop_q)
         term_curr = 0.5 * (curr_q.T).dot(cov_inv).dot(curr_q)
-        test_stat = np.exp((-term_prop + term_curr)[0,0])
-        if (np.random.random() < test_stat):
+        #test_stat = np.exp((-term_prop + term_curr)[0,0])
+        test_stat = (-term_prop + term_curr)[0,0] # More numerically stable
+        if (np.log(np.random.random()) < test_stat):
             curr_q = prop_q
             acc_rate += 1
         positions[:,i] = curr_q.reshape(2,)
@@ -133,10 +131,10 @@ if __name__ == "__main__":
     positions, acc_rate, hamiltonians = run_samples_hmc(s=np.copy(start_q),
                                                         covariance=cov_ham,
                                                         N=20, 
-                                                        eps=0.18, 
-                                                        L=20)
+                                                        eps=0.06, 
+                                                        L=30)
     positions_rw, acc_rate_rw = run_samples_rw(s=np.copy(start_q),
                                                cov_rw=cov_rw,
                                                cov_distr=cov_ham,
-                                               N=500)
+                                               N=400)
     plot(positions, acc_rate, hamiltonians, positions_rw, acc_rate_rw)

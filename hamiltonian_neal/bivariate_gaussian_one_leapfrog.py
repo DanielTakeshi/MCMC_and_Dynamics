@@ -25,11 +25,6 @@ def f_H(q, p, cov):
     return 0.5 * ((q.T).dot(np.linalg.inv(cov)).dot(q) + (p.T).dot(p))
 
 
-def f_U(q, cov):
-    """ The U term within the Hamiltonian function. """
-    return 0.5 * (q.T).dot(np.linalg.inv(cov)).dot(q)
-
-
 def grad_U(q, cov):
     """ The grad_U term. """
     return (np.linalg.inv(cov)).dot(q)
@@ -72,7 +67,7 @@ def run_one_sample(eps, L):
     return positions, momentums, hamiltonians, grads_m
 
 
-def plot(positions, momentums, hamiltonians, grads_m, figdir="draft_figures/"):
+def plot(positions, momentums, hamiltonians, grads_m):
     """ 
     This creates two plots. One is to match Neal's figure. The other is for
     understanding the gradients of the momentums. 
