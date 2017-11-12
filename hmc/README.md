@@ -11,18 +11,18 @@ Section 5.2.1.3 example. Not much to say, except I really have to remember to
 use `astype('float32')` to avoid getting weird numpy errors with integers versus
 floats.
 
-![simple_gaussians](draft_figures/univariate_gaussians.png?raw=true)
+![simple_gaussians](figures/univariate_gaussians.png?raw=true)
 
 ### Bivariate Gaussian, One Sample
 
 Section 5.3.3.1 example. This is only for ONE sample to be drawn, which involves
 a 25-step leapfrog.
 
-![bivariate_gaussian_1](draft_figures/bivariate_gaussians_one_sample.png?raw=true)
+![bivariate_gaussian_1](figures/bivariate_gaussians_one_sample.png?raw=true)
 
 And the error is bounded, in fact here is a 200-step leapfrog:
 
-![bivariate_gaussian_2](draft_figures/bivariate_gaussians_one_sample_200steps.png?raw=true)
+![bivariate_gaussian_2](figures/bivariate_gaussians_one_sample_200steps.png?raw=true)
 
 Looks cool, right?
 
@@ -60,4 +60,4 @@ Fortunately, the random walk seems to work. I did 400 points and am showing
 every 20th, like he did. Our rejection rates appear to match. (The number here
 in parentheses are actually the *acceptance* rates.)
 
-![bivariate_gaussian_many_1](draft_figures/bivariate_gaussians_many_samples.png?raw=true)
+![bivariate_gaussian_many_1](figures/bivariate_gaussians_many_samples.png?raw=true)
