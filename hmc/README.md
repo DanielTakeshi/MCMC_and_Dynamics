@@ -1,17 +1,41 @@
 # MCMC Using Hamiltonian Dynamics
 
-This section is about understanding the paper *MCMC Using Hamiltonian Dynamics*,
-by Radford Neal (2010).
+This README will attempt to reproduce the plots from *MCMC Using Hamiltonian
+Dynamics*, by Radford Neal (2010). I will also augment these with my own
+extensions.
 
-## Simple Gaussian Results
+# Discretizing Hamiltonian Dynamics
 
-### Univariate Gaussian
+We assume the following setup with 1-D position `q` and momentum `p` variables:
 
-Section 5.2.1.3 example. Not much to say, except I really have to remember to
-use `astype('float32')` to avoid getting weird numpy errors with integers versus
-floats.
+- `H(q,p) = U(q) + K(p)`
+- `U(q) = q^2/2`
+- `K(p) = p^2/2`
+
+So the dynamics are:
+
+- `dq/dt = p`
+- `dp/dt = -q`
+
+with solution
+
+- `q(t) = r * cos(a+t)`
+- `p(t) = -r * sin(a+t)`
+
+First, here's the figure which reproduces Figure 1. It does so perfectly, as far
+as I can tell. 
 
 ![simple_gaussians](figures/univariate_gaussians.png?raw=true)
+
+Some extensions for the leapfrog method, where we test with different step
+sizes. We can see that at `eps=2.0`, the trajectory diverges. (If this were
+inside HMC, we'd be rejecting those samples, so it's not as bad as it looks ...
+but it's still awful.)
+
+![leapfrog_extensions](figures/univariate_gaussians_leapfrog_tests.png?raw=true)
+
+
+TODO BELOW
 
 ### Bivariate Gaussian, One Sample
 
