@@ -9,7 +9,7 @@ Contents:
 - [Discretizing Hamiltonian Dynamics](#discretizing-hamiltonian-dynamics)
 - [Bivariate Gaussians Example](#bivariate-gaussians)
     - [One Iteration of HMC](#figure-53-one-leapfrog-trajectory)
-    - [Many Iterations of HMC](#figure-54-and-55-running-hmc)
+    - [Many Iterations of HMC](#figures-54-and-55-running-hmc)
 - [A 100-Dimensional Distribution](#a-100-dimensional-distribution)
 
 ## Discretizing Hamiltonian Dynamics
@@ -115,9 +115,49 @@ second coordinates:
 ![many_samples](figures/bivariate_gaussians_fig5-5.png?raw=true)
 
 Yes, for both coordinates, there is a clear pattern in that the random walk
-samples are more correlated. And recall, these are the position variables.
+samples are more correlated. And recall, these are the position variables. And
+also recall, yes we have 20 leapfrog steps, but we are also plotting *every* HMC
+sample, whereas we're plotting every 20 **random-walk** steps, so we're really
+comparing N **leapfrog steps** to N random walk steps (Neal does this to "match
+computation time" which makes sense). HMC still wins out.
 
 
 ## A 100-Dimensional Distribution
 
-In progress ...
+(See the `gaussian_high_dim.py` script.)
+
+Now we generate the last two figures in (Neal, 2010), Figures 5.6 and 5.7, based
+on a 100-dimensional Gaussian with standard deviations of 0.01, 0.02, ..., 0.99,
+1.0. (Neal, 2010) claim that this represents "more typical behavior" but again
+this is a Gaussian so ... I'll take that with a grain of salt, knowing that Deep
+Nets will be facing much harder problems. Remember, this 100-dimensional
+Gaussian is what we want MCMC algorithms to *sample from*.
+
+Anyway, let's generate the figures! Here's my reproduction of Figure 5.6:
+
+![high_dim_fig5-6](figures/high_dim_gaussian_5-6.png?raw=true)
+
+Couple of things:
+
+- I actually added in the plot for the first coordinate as a sanity check. This
+  one has a much smaller standard deviation, as expected, and you can't see the
+  RW vs HMC difference in performance.
+
+- The second row, which is what Neal actually reports, clearly shows the benefit
+  of HMC over RW.
+
+- Watch out! (Neal, 2010) reports the **standard deviations** of the various
+  Gaussians, but we need the **covariance**, so be sure to square those values.
+  I forgot to do that originally, and ended up getting absurdly high acceptance
+  rates (essentially a 100% acceptance rate for HMC and 80% for RW). I fixed
+  that, and as you can see my acceptance rates are comparable to Neal's reported
+  values. Neal's values were 87% for HMC and 25% for RW.
+
+- For the starting position, I randomly sampled it from a 100-dimensional
+  Gaussian with the `100x100` identity matrix. I don't think it matters that
+  much, though; you can clearly see that the sampling algorithm will correct for
+  any initial deviations.
+
+TODO in progress ...
+
+![high_dim_fig5-7](figures/high_dim_gaussian_5-6.png?raw=true)

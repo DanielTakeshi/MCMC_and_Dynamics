@@ -75,7 +75,7 @@ def leapfrog(current_q, cov, eps, L):
 def run_samples_hmc(s, covariance, N, eps, L):
     """
     Runs the example in Section 5.3.3.2 in Neal's paper using Hamiltonian Monte
-    Carlo. [Unfotunately he doesn't explain which starting q he used.]
+    Carlo. [Unfortunately he doesn't explain which starting q he used.]
     """
     positions = []
     momentums = []
