@@ -9,7 +9,8 @@ Contents:
 - [Discretizing Hamiltonian Dynamics](#discretizing-hamiltonian-dynamics)
 - [Bivariate Gaussians Example](#bivariate-gaussians)
     - [One Iteration of HMC](#figure-53-one-leapfrog-trajectory)
-    - [Many Iterations of HMC](#figure-54-running-hmc)
+    - [Many Iterations of HMC](#figure-54-and-55-running-hmc)
+- [A 100-Dimensional Distribution](#a-100-dimensional-distribution)
 
 ## Discretizing Hamiltonian Dynamics
 
@@ -82,7 +83,7 @@ step size, the Hamiltonian values have a maximum difference bounded by 0.002.
 
 
 
-### Figure 5.4, Running HMC
+### Figures 5.4 and 5.5, Running HMC
 
 This time, we'll run many iterations of HMC, rather than just one as we did
 earlier for replicating Figure 5.3. Here's my attempt at reproducing Figure 5.4
@@ -107,3 +108,16 @@ I swear, I did not run this more times to get exactly a 91% acceptance rate
 mean. Results are not deterministic since we re-sample the momentum variables
 each time, and also I don't know where he set his starting position points, but
 it's good that the results seem comparable.
+
+Here's an attempt at replicating Figure 5.5 as well, and I also added in the
+second coordinates:
+
+![many_samples](figures/bivariate_gaussians_fig5-5.png?raw=true)
+
+Yes, for both coordinates, there is a clear pattern in that the random walk
+samples are more correlated. And recall, these are the position variables.
+
+
+## A 100-Dimensional Distribution
+
+In progress ...

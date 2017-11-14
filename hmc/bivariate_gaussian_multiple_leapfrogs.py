@@ -159,6 +159,46 @@ def plot(hmc, rw, cov_ham):
     plt.savefig(FIG_DIR+"bivariate_gaussians_many_samples.png")
 
 
+def plot_figure_5_5(hmc, rw):
+    """ Plot Figure 5.5 to see coordinates, and add the second ones. """
+    fig, axarr = plt.subplots(2,2, figsize=(10,8))
+
+    rw_first_coords = rw['pos'][:,0][::20]
+    hmc_first_coords = hmc['pos'][:,0]
+    rw_second_coords = rw['pos'][:,1][::20]
+    hmc_second_coords = hmc['pos'][:,1]
+
+    assert len(rw_first_coords) == len(hmc_first_coords)
+    xcoords = np.arange(len(rw_first_coords))
+
+    axarr[0,0].plot(xcoords, rw_first_coords, '-ro')
+    axarr[0,0].set_title("Random-Walk Metropolis", fontsize=title_size)
+    axarr[0,0].set_xlabel("Every 20 Samples", fontsize=xsize)
+    axarr[0,1].plot(xcoords, hmc_first_coords, '-ro')
+    axarr[0,1].set_title("Hamiltonian Monte Carlo", fontsize=title_size)
+    axarr[0,1].set_xlabel("Every Sample", fontsize=xsize)
+
+    axarr[1,0].plot(xcoords, rw_second_coords, '-ro')
+    axarr[1,0].set_title("Random-Walk Metropolis", fontsize=title_size)
+    axarr[1,0].set_xlabel("Every 20 Samples", fontsize=xsize)
+    axarr[1,1].plot(xcoords, hmc_second_coords, '-ro')
+    axarr[1,1].set_title("Hamiltonian Monte Carlo", fontsize=title_size)
+    axarr[1,1].set_xlabel("Every Sample", fontsize=xsize)
+
+    # Bells and whistles.
+    for ii in range(2):
+        for jj in range(2):
+            if ii == 0:
+                axarr[ii,jj].set_ylabel("First Position Coordinate", fontsize=ysize)
+            else:
+                axarr[ii,jj].set_ylabel("Second Position Coordinate", fontsize=ysize)
+            axarr[ii,jj].set_ylim([-3.0, 3.0])
+            axarr[ii,jj].tick_params(axis='x', labelsize=tick_size)
+            axarr[ii,jj].tick_params(axis='y', labelsize=tick_size)
+    plt.tight_layout()
+    plt.savefig(FIG_DIR+"bivariate_gaussians_fig5-5.png")
+
+
 if __name__ == "__main__":
     """ Define different covariances, but keep the same starting location. """
     cov_ham = np.array([[1., 0.98],[0.98, 1.]])
@@ -193,3 +233,11 @@ if __name__ == "__main__":
             np.mean(hmc_arates_l), np.std(hmc_arates_l)))
     print("RW accept rate: {:.3f} +/- {:.3f}".format(
             np.mean(rw_arates_l), np.std(rw_arates_l)))
+
+    # Now do Figure 5.5 which runs for longer and plots magnitudes.
+    hmc, rw = {}, {}
+    hmc['pos'], hmc['mom'], hmc['arate'], hmc['ham'] = run_samples_hmc(
+            s=np.copy(start_q), covariance=cov_ham, N=200, eps=0.18, L=20)
+    rw['pos'], rw['arate'] = run_samples_rw(
+            s=np.copy(start_q), cov_rw=cov_rw, cov_distr=cov_ham, N=4000)
+    plot_figure_5_5(hmc, rw)
