@@ -2,8 +2,14 @@
 
 This README will attempt to reproduce the plots from *MCMC Using Hamiltonian
 Dynamics*, by Radford Neal (2010). I will also augment these with my own
-extensions.
+extensions as I investigate tuning the parameters.
 
+Contents:
+
+- [Discretizing Hamiltonian Dynamics](##discretizing-hamiltonian-dynamics)
+- [Bivariate Gaussians Example](#bivariate-gaussians)
+    - [One Iteration of HMC](#figure-53-one-leapfrog-trajectory)
+    - [Many Iterations ofHMC](#figure-53-one-leapfrog-trajectory)
 
 ## Discretizing Hamiltonian Dynamics
 
@@ -73,3 +79,11 @@ Hamiltonian diverges, as Neal confirms:
 way, **the Hamiltonian value plots are not on the same scale!!** The positions
 and momentums are on the same scale, for clarity. For instance, with a small
 step size, the Hamiltonian values have a maximum difference bounded by 0.002.
+
+
+### Figure 5.4, Running HMC
+
+This time, we'll run many iterations of HMC, rather than just one as we did
+earlier for replicating Figure 5.3.
+
+TODO
