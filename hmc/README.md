@@ -4,7 +4,10 @@ This README will attempt to reproduce the plots from *MCMC Using Hamiltonian
 Dynamics*, by Radford Neal (2010). I will also augment these with my own
 extensions.
 
-# Discretizing Hamiltonian Dynamics
+
+## Discretizing Hamiltonian Dynamics
+
+See `hamiltonian_univariate_gaussian.py` for the code I used.
 
 We assume the following setup with 1-D position `q` and momentum `p` variables:
 
@@ -35,53 +38,38 @@ but it's still awful.)
 ![leapfrog_extensions](figures/univariate_gaussians_leapfrog_tests.png?raw=true)
 
 
-TODO BELOW
 
-### Bivariate Gaussian, One Sample
 
-Section 5.3.3.1 example. This is only for ONE sample to be drawn, which involves
-a 25-step leapfrog.
+## Bivariate Gaussians
 
-![bivariate_gaussian_1](figures/bivariate_gaussians_one_sample.png?raw=true)
+### Figure 5.3, One Leapfrog Trajectory
 
-And the error is bounded, in fact here is a 200-step leapfrog:
+See `bivariate_gaussian_one_leapfrog.py`.
 
-![bivariate_gaussian_2](figures/bivariate_gaussians_one_sample_200steps.png?raw=true)
+I'm attempting to re-generate Figure 5.3, which is about ONE leapfrog
+trajectory, so this would be done in one iteration of HMC to generate a sample.
+Here it is below, reproduced exactly:
 
-Looks cool, right?
+![bivariate_gaussian_1](figures/bivariate_gaussians_one_leapfrog_traj.png?raw=true)
 
-I also have gradient graphs not in this paper, for gradients of the position
-variables. However, I'm not sure what to make of them, they just oscillate.
+Note that we'd normally not be interested in the intermediate steps, as all we
+want to know is the FINAL Hamiltonian value (here it's 2.616) so that we'd
+compare the energy difference with the starting value (of 2.205). So indeed, the
+difference is about 0.41 (as Neal says!) so the probability of accepting the
+final (position,momentum) = (q,p) coordinates here is `exp(-0.41) = 0.66`.
 
-I'm not sure what to think of this. However, understanding the figures that are
-like those in Neal's paper is easier because the update is just q = q + eps\*p.
-In other words, p helps to "guide" q to where it should go, which might be why
-it's called "momentum!" Think: if q is at the origin, and p is at [1,1], then
-the update will result in q = [eps,eps], moving towards the direction of p.
-Thus, the movement of q, I understand. The movement of p in the first place is a
-little harder to process. I need to think a little more about this.
+By the way, one full "momentum" step is really two half-steps that surround a
+full position step. In normal code, we'd combine the two half-steps for the
+intermediate momentum steps. I only split them here so that I could plot them
+visually and get it to match Neal's plot exactly (as everything here is
+deterministic).
 
-### Bivariate Gaussian, Multiple Samples
+Now let's see what happens when we vary epsilon. Indeed, as we get to 0.45, the
+Hamiltonian diverges, as Neal confirms:
 
-Hmmmm ... I can't quite replicate Neal's result. I'm getting acceptance rates of
-about 0.5-0.6 using his reported settings. I had to tune the step size epsilon
-and the number of leapfrog steps L, but I can get something that *looks* good,
-and certainly looks better than a random walk. 
+![bivariate_gaussian_2](figures/bivariate_gaussians_one_leapfrog_investigation.png?raw=true)
 
-I wonder, how can we get an acceptance rate of 0.91 if this example is very
-similar to the previous one, and there, Neal notes that the acceptance rate for
-that last sample is 0.66 (see bottom of Section 5.3.3.1). Thus it seems odd that
-we would always get high acceptance rates (i.e. close to one). 
-
-I may double-check this leapfrog code later but I think it's exactly the same as
-his pseudocode and in my earlier code. Even so, the Hamiltonians seem to be
-fluctuating a bit too much for me, but who knows? 
-
-Note to self: we can't do a covariance with diagonals greater than 1, since that
-wouldn't be a positive definite matrix.
-
-Fortunately, the random walk seems to work. I did 400 points and am showing
-every 20th, like he did. Our rejection rates appear to match. (The number here
-in parentheses are actually the *acceptance* rates.)
-
-![bivariate_gaussian_many_1](figures/bivariate_gaussians_many_samples.png?raw=true)
+**Wow**, look at the difference between epsilon of 0.44 and 0.45. And by the
+way, **the Hamiltonian value plots are not on the same scale!!** The positions
+and momentums are on the same scale, for clarity. For instance, with a small
+step size, the Hamiltonian values have a maximum difference bounded by 0.002.
