@@ -81,9 +81,29 @@ and momentums are on the same scale, for clarity. For instance, with a small
 step size, the Hamiltonian values have a maximum difference bounded by 0.002.
 
 
+
 ### Figure 5.4, Running HMC
 
 This time, we'll run many iterations of HMC, rather than just one as we did
-earlier for replicating Figure 5.3.
+earlier for replicating Figure 5.3. Here's my attempt at reproducing Figure 5.4
+using the same hyperparameters. For good measure, I also put the value of the
+Hamiltonians after the end of the iteration (after we have our new (or re-used)
+sample and the negated momentum) just for a sanity check. The Hamiltonian seems
+to vary a lot, but at least the trajectory looks like it takes longer jumps than
+random walks.
 
-TODO
+![many_samples](figures/bivariate_gaussians_many_samples.png?raw=true)
+
+The number in the title is the acceptance rate. Neal reports 63% and 91%
+acceptance rates for RW and HMC, respectively, and my numbers match. I ran this
+an additional 20 times and here is the mean and standard deviation:
+
+```
+HMC accept rate: 0.910 +/- 0.073
+RW accept rate: 0.637 +/- 0.021
+```
+
+I swear, I did not run this more times to get exactly a 91% acceptance rate
+mean. Results are not deterministic since we re-sample the momentum variables
+each time, and also I don't know where he set his starting position points, but
+it's good that the results seem comparable.
