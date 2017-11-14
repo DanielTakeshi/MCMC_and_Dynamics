@@ -158,6 +158,20 @@ Couple of things:
   much, though; you can clearly see that the sampling algorithm will correct for
   any initial deviations.
 
-TODO in progress ...
+Now we get to the last figure in (Neal, 2010) where we plot the estimates of the
+mean and standard deviations of each of the variables (i.e., coordinates) from
+our sample mean and sample standard deviations. (This is the point of being a
+Bayesian, so that we use our samples to approximate integrals, though in this
+case we have closed form solutions but whatever ...  just pretend that these
+means and standard deviations are hard to compute without sampling.)
 
-![high_dim_fig5-7](figures/high_dim_gaussian_5-6.png?raw=true)
+Here we go:
+
+![high_dim_fig5-7](figures/high_dim_gaussian_5-7.png?raw=true)
+
+Yes, it's clear that our estimates with HMC are better. I wish we could say "our
+posterior estimates" but of course it's cheating here as we know the form of the
+"posterior" which is "this multivariate Gaussian we defined ...". 
+
+So ... the next step, now that I've replicated all of the figures in (Neal,
+2010), is to apply this to harder problems.

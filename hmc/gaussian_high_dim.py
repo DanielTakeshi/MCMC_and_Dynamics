@@ -183,6 +183,49 @@ def plot_figure_5_6(hmc, rw, step):
     plt.savefig(FIG_DIR+"high_dim_gaussian_5-6.png")
 
 
+def plot_figure_5_7(hmc, rw, step, stdev_vec):
+    """ Plot Figure 5.7 for an application of Bayesian models. :-) """
+    fig, axarr = plt.subplots(2,2, figsize=(12,12))
+
+    hmc_info = hmc['pos']
+    n, d = hmc_info.shape
+    indices = np.arange(n) * step
+    rw_info = rw['pos'][indices]
+    print("hmc positions shape: {}".format(hmc_info.shape))
+    print("rw positions shape:  {}".format(rw_info.shape))
+    rw_sample_mean  = np.mean(rw_info, axis=0)
+    rw_sample_std   = np.std(rw_info, axis=0)
+    hmc_sample_mean = np.mean(hmc_info, axis=0)
+    hmc_sample_std  = np.std(hmc_info, axis=0)
+
+    # First row = sample mean.
+    axarr[0,0].plot(stdev_vec, rw_sample_mean, 'ro')
+    axarr[0,0].set_title("Random-Walk Metropolis", fontsize=title_size)
+    axarr[0,1].plot(stdev_vec, hmc_sample_mean, 'ro')
+    axarr[0,1].set_title("Hamiltonian Monte Carlo", fontsize=title_size)
+
+    # Second row = sample standard deviation.
+    axarr[1,0].plot(stdev_vec, rw_sample_std, 'ro')
+    axarr[1,0].set_title("Random-Walk Metropolis", fontsize=title_size)
+    axarr[1,1].plot(stdev_vec, hmc_sample_std, 'ro')
+    axarr[1,1].set_title("Hamiltonian Monte Carlo", fontsize=title_size)
+
+    # Bells and whistles.
+    for ii in range(2):
+        for jj in range(2):
+            if ii == 0:
+                axarr[ii,jj].set_ylabel("Sample Mean of Coordinate", fontsize=ysize)
+                axarr[ii,jj].set_ylim([-1,1])
+            else:
+                axarr[ii,jj].set_ylabel("Sample StDev of Coordinate", fontsize=ysize)
+                axarr[ii,jj].set_ylim([0,1.2])
+            axarr[ii,jj].set_xlabel("True StDev of Coordinate", fontsize=xsize)
+            axarr[ii,jj].tick_params(axis='x', labelsize=tick_size)
+            axarr[ii,jj].tick_params(axis='y', labelsize=tick_size)
+    plt.tight_layout()
+    plt.savefig(FIG_DIR+"high_dim_gaussian_5-7.png")
+
+
 if __name__ == "__main__":
     """ Define different covariances, but keep the same starting location. """
     dimension = 100
@@ -218,3 +261,4 @@ if __name__ == "__main__":
             N=N_rw,
             d=dimension)
     plot_figure_5_6(hmc, rw, step=num_leapfrog)
+    plot_figure_5_7(hmc, rw, step=num_leapfrog, stdev_vec=stdev_vec)
