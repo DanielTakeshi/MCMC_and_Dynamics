@@ -1,16 +1,22 @@
 """
 Simple Hamiltonian. Based on Section 5.3.3.2 in Radford Neal's article, 2010.
 This time, we actually sample multiple times (each single sample needs its own
-sequence of leapfrog steps). NOTE: at some point, I should switch away from
-using hstack, because that's very inefficient for numpy.
+sequence of leapfrog steps).
 """
-
+from collections import defaultdict
 import numpy as np
-np.set_printoptions(suppress=True)
+np.set_printoptions(suppress=True, linewidth=80)
+import sys
+
+# Matplotlib
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-darkgrid')
-import sys
 FIG_DIR = "draft_figures/"
+title_size = 18
+xsize = 15
+ysize = 15
+legend_size = 15
+tick_size = 15
 
 
 def f_H(q, p, cov):

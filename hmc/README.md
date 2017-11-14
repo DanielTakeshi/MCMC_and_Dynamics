@@ -6,10 +6,10 @@ extensions as I investigate tuning the parameters.
 
 Contents:
 
-- [Discretizing Hamiltonian Dynamics](##discretizing-hamiltonian-dynamics)
+- [Discretizing Hamiltonian Dynamics](#discretizing-hamiltonian-dynamics)
 - [Bivariate Gaussians Example](#bivariate-gaussians)
     - [One Iteration of HMC](#figure-53-one-leapfrog-trajectory)
-    - [Many Iterations ofHMC](#figure-53-one-leapfrog-trajectory)
+    - [Many Iterations of HMC](#figure-54-running-hmc)
 
 ## Discretizing Hamiltonian Dynamics
 

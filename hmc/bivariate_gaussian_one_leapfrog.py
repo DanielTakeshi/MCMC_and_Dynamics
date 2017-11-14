@@ -12,6 +12,7 @@ import sys
 
 # Matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 plt.style.use('seaborn-darkgrid')
 FIG_DIR = "draft_figures/"
 title_size = 18
@@ -88,11 +89,57 @@ def do_one_sample(cfg):
     return proc(positions), proc(momentums), proc(hamiltonians)
 
 
+def plot_cov_ellipse(cov, pos, nstd=1, ax=None, **kwargs):
+    """
+    Plots an `nstd` sigma error ellipse based on the specified covariance matrix
+    (`cov`). Additional keyword arguments are passed on to the ellipse patch
+    artist.
+
+    Parameters
+    ----------
+        cov : The 2x2 covariance matrix to base the ellipse on
+        pos : The location of the center of the ellipse.  Expects a 2-element
+                sequence of [x0, y0].
+        nstd : The radius of the ellipse in numbers of standard deviations.
+                Defaults to 2 standard deviations.
+        ax : The axis that the ellipse will be plotted on.  Defaults to the
+                current axis.
+        Additional keyword arguments are pass on to the ellipse patch.
+
+    Returns
+    -------
+    A matplotlib ellipse artist
+    """
+    def eigsorted(cov):
+        vals, vecs = np.linalg.eigh(cov)
+        order = vals.argsort()[::-1]
+        return vals[order], vecs[:,order]
+
+    if ax is None:
+        ax = plt.gca()
+
+    vals, vecs = eigsorted(cov)
+    theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+
+    # Width and height are "full" widths, not radius
+    width, height = 2 * nstd * np.sqrt(vals)
+    ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
+    ax.add_artist(ellip) 
+    return ellip
+
+
 def plot(positions, momentums, hamiltonians, cfg):
     """  Creates plots to match Neal's figure. """
     L = cfg['L']
     eps = cfg['eps']
     fig, axarr = plt.subplots(1,3, figsize=(15,4.5))
+
+    # Plot an ellipse of one standard deviation..
+    cov = np.array([[cfg['stdev'], cfg['covariance']],
+                    [cfg['covariance'], cfg['stdev']]]
+    )
+    plot_cov_ellipse(cov=cov, pos=[0,0], nstd=1, ax=axarr[0], alpha=0.25,
+            color='blue', ls='dashed', lw=3)
 
     axarr[0].plot(positions[:,0], positions[:,1], '-ro')
     axarr[0].set_title("Positions, eps={}, L={}".format(eps, L), 
@@ -120,6 +167,8 @@ def plot(positions, momentums, hamiltonians, cfg):
 
 def plot_groups(stats, eps_values):
     """  Creates plots to match Neal's figure. """
+    cov = np.array([[cfg['stdev'], cfg['covariance']],
+                    [cfg['covariance'], cfg['stdev']]])
     nrows = len(eps_values)
     ncols = 3
     fig, axarr = plt.subplots(nrows, ncols, figsize=(15,5*nrows))
@@ -129,6 +178,10 @@ def plot_groups(stats, eps_values):
         momentums = stats['all_mom'][i]
         hamiltonians = stats['all_ham'][i]
         eps = eps_values[i]
+
+        # Plot an ellipse of one standard deviation..
+        plot_cov_ellipse(cov=cov, pos=[0,0], nstd=1, ax=axarr[i,0], alpha=0.25,
+                color='blue', ls='dashed', lw=3)
 
         axarr[i,0].plot(positions[:,0], positions[:,1], '-ro')
         axarr[i,1].plot(momentums[:,0], momentums[:,1], '-ro')
