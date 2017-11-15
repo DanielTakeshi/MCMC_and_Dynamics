@@ -1,5 +1,5 @@
 # Bayesian Neural Networks
 
-Bayesian Neural Networks.
+This code is based on [Tianqi Chen's code for SGHMC][1].
 
-Implementation TBD.
+[1]:https://github.com/tqchen/ML-SGHMC
