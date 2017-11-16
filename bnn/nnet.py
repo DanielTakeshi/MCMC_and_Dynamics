@@ -9,6 +9,7 @@ import sys
 # Full connected layer
 # note: all memory are pre-allocated, always use a[:]= instead of a= in assignment
 class FullLayer:
+
     def __init__( self, i_node, o_node, init_sigma, rec_gsqr = False ):
         assert i_node.shape[0] == o_node.shape[0]
         self.rec_gsqr = rec_gsqr
@@ -54,7 +55,9 @@ class FullLayer:
         # return a reference list of parameters
         return [ (self.o2i_edge, self.g_o2i_edge, self.sg_o2i_edge), (self.o2i_bias,self.g_o2i_bias,self.sg_o2i_bias) ]
 
+
 class ActiveLayer:
+
     def __init__( self, i_node, o_node, n_type = 'relu' ):
         assert i_node.shape[0] == o_node.shape[0]
         # node value
@@ -83,7 +86,9 @@ class ActiveLayer:
     def params( self ):
         return []
 
+
 class SoftmaxLayer:
+
     def __init__( self, i_node, o_label ):
         assert i_node.shape[0] == o_label.shape[0]
         assert len( o_label.shape ) == 1
@@ -101,10 +106,13 @@ class SoftmaxLayer:
             nbatch = self.i_node.shape[0]
             for i in range( nbatch ):
                 self.i_node[ i, self.o_label[i] ] -= 1.0 
+
     def params( self ):
         return []
 
+
 class RegressionLayer:
+
     def __init__( self, i_node, o_label, param ):
         assert i_node.shape[0] == o_label.shape[0]
         assert i_node.shape[0] == o_label.size
@@ -126,16 +134,15 @@ class RegressionLayer:
         if self.n_type == 'logistic':
             self.base_score = - math.log( 1.0 / self.base_score - 1.0 );
         print('range=[%f,%f], base=%f' %( self.min_label, param.max_label, param.avg_label ))
+
     def forward( self, istrain = True ):     
         self.init_params()
         nbatch = self.i_node.shape[0]
         self.i_node[:] += self.base_score
         if self.n_type == 'logistic':
             self.i_node[:] = 1.0 / ( 1.0 + np.exp( -self.i_node ) )
-
         self.i_tmp[:] = self.i_node[:]
-
-        # transform to approperiate output
+        # transform to appropriate output
         self.i_node[:] = self.i_node * self.scale + self.min_label
         
     def backprop( self, passgrad = True ):
@@ -148,7 +155,9 @@ class RegressionLayer:
     def params( self ):
         return []
 
+
 class NNetwork:
+
     def __init__( self, layers, nodes, o_label, factory ):
         self.nodes   = nodes
         self.o_label = o_label
@@ -162,10 +171,10 @@ class NNetwork:
         for w, g_w, sg_w in self.weights:
             assert w.shape == g_w.shape and w.shape == sg_w.shape
             self.updaters.append( factory.create_updater( w, g_w, sg_w ) )
-
         self.updaters = factory.create_hyperupdater( self.updaters ) + self.updaters
 
     def update( self, xdata, ylabel ):
+        """ Update based on one minibatch of data. """
         self.i_node[:] = xdata
         for i in range( len(self.layers) ):
             self.layers[i].forward( True )
@@ -177,6 +186,7 @@ class NNetwork:
             u.update()
 
     def update_all( self, xdatas, ylabels ):
+        """ Called by external code, starts the updating pipeline. """
         for i in range( xdatas.shape[0] ):            
             self.update( xdatas[i], ylabels[i] )
         for u in self.updaters:
@@ -188,8 +198,10 @@ class NNetwork:
             self.layers[i].forward( False )
         return self.o_node
 
-# evaluator to evaluate results 
+
 class NNEvaluator:
+    """ Evaluator to evaluate results. """
+
     def __init__( self, nnet, xdatas, ylabels, param, prefix='' ):
         self.nnet = nnet
         self.xdatas  = xdatas
@@ -228,8 +240,9 @@ class NNEvaluator:
         ninst = self.ylabels.size
         fo.write( ' %s-err:%f %s-nlik:%f' % ( self.prefix, sum_bad/ninst, self.prefix, -sum_loglike/ninst) )
 
-# Model parameter
+
 class NNParam:
+
     def __init__( self ):
         # network type
         self.net_type = 'mlp2'
@@ -296,7 +309,8 @@ class NNParam:
         if self.start_decay == None:
             return
 
-        d_eta = 1.0 * np.power( 1.0 + max( rcounter - self.start_decay, 0 ) * self.alpha_decay, - self.delta_decay )
+        d_eta = 1.0 * np.power(1.0 + max( rcounter - self.start_decay, 0 ) * self.alpha_decay, 
+                                - self.delta_decay )
         assert d_eta - 1.0 < 1e-6 and d_eta > 0.0
         
         if self.decay_momentum != 0:

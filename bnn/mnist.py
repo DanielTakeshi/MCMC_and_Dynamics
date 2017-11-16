@@ -97,6 +97,9 @@ def run_exp( param ):
     print('loading end,%d train,%d valid,%d test, start update ...' % (
         train_ylabel.size, valid_ylabel.size, test_ylabel.size ))
         
+    # By default, `net` has number of updaters equal to 2x the amount of network
+    # weights we store, e.g. in the paper they said A, B, a, b, so each has a
+    # separate SGHMC updater and also its own hyperparameter updater.
     for it in range( param.num_round ):
         param.set_round( it )
         net.update_all( train_xdata, train_ylabel )
