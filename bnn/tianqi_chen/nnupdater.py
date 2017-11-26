@@ -89,6 +89,7 @@ class HyperUpdater:
     """ Hyper Parameter Gibbs Gamma sampler for regularizer update. """
 
     def __init__(self, param, updaterlist):
+        """ The updaterlist contains all the _regular_ hyperparameters. """
         self.updaterlist = updaterlist
         self.param = param
         self.scounter = 0
@@ -126,7 +127,7 @@ class HyperUpdater:
             # from the SGHMC paper) since this is a scalar, obviously.
             plambda = np.random.gamma( alpha, 1.0 / beta )
 
-        # set new weight decay
+        # Set new weight decay, equivalent to Gaussian prior on weights.
         wd = plambda / param.num_train
         for u in self.updaterlist:
             u.wd = wd
