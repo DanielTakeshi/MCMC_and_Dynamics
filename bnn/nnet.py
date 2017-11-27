@@ -10,8 +10,9 @@ import os
 import pickle
 import sys
 import tensorflow as tf
+import time
 import utils as U
-from nnupdaters import (SGDUpdater, HMCUpdater)
+from nnupdaters import (SGDUpdater, HMCUpdater, HyperUpdater)
 np.set_printoptions(suppress=True, linewidth=180)
 
 
@@ -59,10 +60,10 @@ class Net:
             grad = tf.gradients(self.loss, w)[0] # Extract the only list item.
             self.grads.append(grad)
 
-            if self.algo == 'hmc':
+            if args.algo == 'hmc':
                 # For HMC, we also need hyperparameter updates.
-                # self.updaters.append( HMCUpdater(w, grad, args) )
-                # self.h_updaters.append( HyperUpdater(...) )
+                self.updaters.append( HMCUpdater(w, grad, args) )
+                self.h_updaters.append( HyperUpdater(w, args) )
             else:
                 self.updaters.append( SGDUpdater(w, grad, args) )
 
@@ -80,6 +81,7 @@ class Net:
         iters_per_epoch_valid = int(self.num_valid / args.bsize)
         print("Training, num iters per epoch for train & valid: {}, {}".format(
                 iters_per_epoch_train, iters_per_epoch_valid))
+        t_start = time.time()
 
         for ee in range(args.epochs):
             for ii in range(iters_per_epoch_train):
@@ -100,8 +102,16 @@ class Net:
 
             acc_valid /= iters_per_epoch_valid
             loss_valid /= iters_per_epoch_valid
-            print("epoch {} done, valid loss and acc: {:.4f}, {:.4f}".format(
-                ee, loss_valid, acc_valid))
+
+            # Log after each epoch, if desired.
+            if (ee % args.log_every_t_epochs == 0):
+                print("\n  ************ Epoch %i ************" % ee)
+                elapsed_time_hours = (time.time() - t_start) / (60.0 ** 2)
+                logz.log_tabular("ValidAcc",  acc_valid)
+                logz.log_tabular("ValidLoss", loss_valid)
+                logz.log_tabular("TimeHours", elapsed_time_hours)
+                logz.log_tabular("Epochs",    ee)
+                logz.dump_tabular()
 
 
     def test(self):

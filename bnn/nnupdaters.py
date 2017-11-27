@@ -31,6 +31,12 @@ import tensorflow as tf
 
 
 class SGDUpdater:
+    """
+    Do things slightly different from normal TF to make it more similar to the
+    HMC updates. We create one tf.train.Optimizer for _each_ set of weights in
+    our network. Then we apply the pre-computed gradient. All of this should be
+    in the same computational graph so there shouldn't be issues.
+    """
 
     def __init__(self, w, g_w, args):
         self.w = w
@@ -75,3 +81,12 @@ class HMCUpdater:
             self.m_w[:] += np.random.randn(self.w.size).reshape(self.w.shape) * param.get_sigma()
         # Weights are `self.w`, updated from the computed momentums.
         self.w[:] += self.m_w
+
+
+class HyperUpdater:
+
+    def __init__(self, w, args):
+        self.w = w
+
+    def update(self):
+        pass

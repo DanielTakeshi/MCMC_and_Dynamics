@@ -44,7 +44,8 @@ if __name__ == "__main__":
     pp.add_argument('--data_dir', type=str, 
                     default='/tmp/tensorflow/mnist/input_data', 
                     help='Directory for storing input data')
-
+    pp.add_argument('--log_every_t_epochs', type=int, default=1,
+                    help='log every t iterations (i.e., epochs)')
     args = pp.parse_args()
     assert args.algo in ['sgd', 'momentum', 'adam', 'rmsprop', 'hmc']
 
