@@ -28,6 +28,8 @@ class NNFactory:
         elif self.param.hyperupdater == 'gibbs-joint':
             return [ nnupdater.HyperUpdater( self.param, updaterlist ) ]
         elif self.param.hyperupdater == 'gibbs-sep':
+            # Default case: create HyperUpdater for _each_ weight. It's what I
+            # have in my blog post; each weight gets its own sampled h-params.
             return [ nnupdater.HyperUpdater( self.param, [u] ) for u in updaterlist ]
         else:
             raise('NNConfig', 'unknown hyperupdater')

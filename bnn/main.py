@@ -27,6 +27,10 @@ if __name__ == "__main__":
                     help='weight decay for regularization')
 
     # HMC-specific
+    pp.add_argument('--gamma_alpha', type=float, default=1.0,
+                    help='alpha for the hyperparameter gamma prior')
+    pp.add_argument('--gamma_beta', type=float, default=1.0,
+                    help='beta for the hyperparameter gamma prior')
     pp.add_argument('--leapfrog_step', type=float, default=0.3,
                     help='step size for leapfrog method')
     pp.add_argument('--lrate_hmc', type=float, default=0.01,
@@ -34,7 +38,7 @@ if __name__ == "__main__":
     pp.add_argument('--num_leapfrog', type=int, default=5,
                     help='number of leapfrog steps')
 
-    # SGD-specific
+    # SGD and variants
     pp.add_argument('--lrate_sgd', type=float, default=0.01,
                     help='step size for SGD-based methods')
     pp.add_argument('--momentum', type=float, default=0.01,

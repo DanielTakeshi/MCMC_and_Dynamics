@@ -12,7 +12,7 @@ import sys
 import tensorflow as tf
 import time
 import utils as U
-from nnupdaters import (SGDUpdater, HMCUpdater, HyperUpdater)
+from nnupdaters import (SGDUpdater, HMCUpdater, HyperUpdater, HyperParams)
 np.set_printoptions(suppress=True, linewidth=180)
 
 
@@ -61,19 +61,22 @@ class Net:
             self.grads.append(grad)
 
             if args.algo == 'hmc':
-                # For HMC, we also need hyperparameter updates.
-                self.updaters.append( HMCUpdater(w, grad, args) )
-                self.h_updaters.append( HyperUpdater(w, args) )
+                # For HMC, we need hyperparameters and their updaters.
+                hp = HyperParams(alpha=args.gamma_alpha, beta=args.gamma_beta)
+                self.updaters.append( HMCUpdater(w, grad, args, hp) )
+                self.h_updaters.append( 
+                        HyperUpdater(w, grad, args, hp, self.sess, self.num_train) 
+                )
             else:
                 self.updaters.append( SGDUpdater(w, grad, args) )
-
-        self.train_op = tf.group(*[up.update() for up in self.updaters])
+                # For now this is only for SGD-based algorithms, not HMC.
+                self.train_op = tf.group(*[up.update() for up in self.updaters])
 
         # View a summary and initialize.
         self._print_summary()
         self.sess.run(tf.global_variables_initializer())
 
-
+    
     def train(self):
         args = self.args
         mnist = self.data
@@ -84,10 +87,19 @@ class Net:
         t_start = time.time()
 
         for ee in range(args.epochs):
+            # Resample the hyperparameters if we're doing HMC.
+            if args.algo == 'hmc':
+                hparams = []
+                for hp in self.h_updaters:
+                    hparams.append( hp.update() )
+
             for ii in range(iters_per_epoch_train):
                 xs, ys = mnist.train.next_batch(args.bsize)
                 feed = {self.x_BO: xs, self.y_targ_BC: ys}
-                _, grads, loss = self.sess.run([self.train_op, self.grads, self.loss], feed)
+                if args.algo == 'hmc':
+                    sys.exit()
+                else:
+                    _, grads, loss = self.sess.run([self.train_op, self.grads, self.loss], feed)
 
             # Check validation set performance after each epoch.
             loss_valid = 0.
@@ -107,6 +119,10 @@ class Net:
             if (ee % args.log_every_t_epochs == 0):
                 print("\n  ************ Epoch %i ************" % ee)
                 elapsed_time_hours = (time.time() - t_start) / (60.0 ** 2)
+                if args.algo == 'hmc':
+                    for ww, hp in zip(self.weights, hparams):
+                        print("{:10} -- (plambda={:.3f}, wd={:.5f})".format(
+                            str(ww.get_shape().as_list()),hp[0],hp[1]))
                 logz.log_tabular("ValidAcc",  acc_valid)
                 logz.log_tabular("ValidLoss", loss_valid)
                 logz.log_tabular("TimeHours", elapsed_time_hours)
@@ -123,6 +139,10 @@ class Net:
         print("test accuracy: {}".format(accuracy))
 
 
+    # ---------
+    # Debugging
+    # ---------
+
     def _print_summary(self):
         print("\n=== START OF SUMMARY ===\n")
         print("Total number of weights: {}.".format(self.num_weights))
@@ -136,5 +156,10 @@ class Net:
         for g in self.grads:
             shp = g.get_shape().as_list()
             print("- {} shape:{} size:{}".format(g.name, shp, np.prod(shp)))
+
+        print("hyperparams:")
+        if self.args.algo == 'hmc':
+            for hu in self.h_updaters:
+                print("- hp with size:{}".format(hu.size))
 
         print("\n=== DONE WITH SUMMARY ===\n")

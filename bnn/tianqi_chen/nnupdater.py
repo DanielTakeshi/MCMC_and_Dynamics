@@ -109,10 +109,11 @@ class HyperUpdater:
         else:
             self.scounter = 0
         
-        # `u.w` are some neural network weights.
+        # `u.w` are some neural network weights. By default, self.updaterlist
+        # has only one element in it so we do this separately.
         sumsqr = sum( np.sum( u.w * u.w ) for u in self.updaterlist )
         sumcnt = sum( u.w.size for u in self.updaterlist )
-        # Do the conjugate update for Gammas. (See Wikipedia if confused.)
+        # Conjugate update for Gammas. (See Wikipedia or my blog post if confused.)
         alpha = param.hyper_alpha + 0.5 * sumcnt
         beta  = param.hyper_beta + 0.5 * sumsqr
         

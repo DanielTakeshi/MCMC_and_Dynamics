@@ -28,6 +28,8 @@ Source: https://www.tensorflow.org/api_guides/python/train#Gradient_Computation
 import numpy as np
 import sys
 import tensorflow as tf
+import collections
+HyperParams = collections.namedtuple('HyperParams', 'alpha beta')
 
 
 class SGDUpdater:
@@ -60,33 +62,49 @@ class SGDUpdater:
         return self.op
 
 
-#TODO fix below, add hyperparameter updater
-
 class HMCUpdater:
 
-    def __init__(self, w, g_w, cfg):
+    def __init__(self, w, g_w, args, hp):
         self.w = w
         self.g_w = g_w
-        # updater specific weight decay
-        self.wd = param.wd
-        self.param = param
-        self.m_w = np.zeros_like( w )
+        self.args = args
+        self.hp = hp
 
     def update(self):
-        param = self.param
-        self.m_w[:] *= ( 1.0 - param.mdecay ) # Ignore during SGLD.
-        self.m_w[:] += (-param.eta) * ( self.g_w + self.wd * self.w )
-        if param.need_sample():
-            # E.g. during SGLD this is the Gaussian noise for exploration.
-            self.m_w[:] += np.random.randn(self.w.size).reshape(self.w.shape) * param.get_sigma()
-        # Weights are `self.w`, updated from the computed momentums.
-        self.w[:] += self.m_w
+        """ Perform leapfrog steps here. """
+        pass
 
 
 class HyperUpdater:
+    """
+    By assumption, the hyper-parameters have IID Gamma priors, so we apply this
+    to one set of weights. If we have N sets of weights total, then we have N
+    instances of this class, one per weight.  Also, the prior is assumed fixed,
+    so we will never change the internal alpha and gamma priors across different
+    epochs.  (I thought we did once, but then it's not a prior!)
+    """
 
-    def __init__(self, w, args):
+    def __init__(self, w, g_w, args, hp, sess, num_train):
         self.w = w
+        self.g_w = g_w
+        self.args = args
+        self.hp = hp
+        self.sess = sess
+        self.size = np.prod( (self.w).get_shape().as_list() )
+        self.num_train = num_train
 
     def update(self):
-        pass
+        """ Perform the Gibbs steps and returns weight decay. 
+        
+        We sample the precision term, but we only need the resulting weight
+        decay as that tells us the term to add for the momentum update. I return
+        plambda anyway, for debugging purposes.
+        """
+        weights = self.sess.run(self.w)
+        sq_norm = (np.linalg.norm(weights) ** 2)
+        alpha   = self.hp.alpha + 0.5 * self.size
+        beta    = self.hp.beta + 0.5 * sq_norm
+
+        plambda = np.random.gamma( alpha, 1.0 / beta )
+        weight_decay = plambda / self.num_train
+        return (plambda, weight_decay)
