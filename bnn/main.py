@@ -14,8 +14,8 @@ import utils as U
 if __name__ == "__main__":
     pp = argparse.ArgumentParser()
 
-    # General settings (TODO: hmc, sgd, adam, etc.)
-    pp.add_argument('--algo', type=str, default='sgd',
+    # General settings
+    pp.add_argument('--algo', type=str, default='hmc',
                     help='See main method for details')
     pp.add_argument('--bsize', type=int, default=500,
                     help='batch size for HMC, really SGHMC...')
@@ -31,11 +31,9 @@ if __name__ == "__main__":
                     help='alpha for the hyperparameter gamma prior')
     pp.add_argument('--gamma_beta', type=float, default=1.0,
                     help='beta for the hyperparameter gamma prior')
-    pp.add_argument('--leapfrog_step', type=float, default=0.3,
+    pp.add_argument('--leapfrog_step', type=float, default=0.25,
                     help='step size for leapfrog method')
-    pp.add_argument('--lrate_hmc', type=float, default=0.01,
-                    help='step size for HMCX-based methods')
-    pp.add_argument('--num_leapfrog', type=int, default=5,
+    pp.add_argument('--num_leapfrog', type=int, default=2,
                     help='number of leapfrog steps')
 
     # SGD and variants
@@ -71,6 +69,7 @@ if __name__ == "__main__":
     # Load datasets and get started.
     # data = utils.load_dataset('mnist') # Eh built-in is fine...
     data = input_data.read_data_sets(args.data_dir, one_hot=True)
-    net = Net(sess, data, args)
+    data2 = input_data.read_data_sets(args.data_dir, one_hot=True)
+    net = Net(sess, data, args, data2)
     net.train()
     net.test()

@@ -4,6 +4,7 @@ https://github.com/tensorflow/tensorflow/blob/r1.4/tensorflow/contrib/learn/pyth
 for the class definition.
 """
 import argparse
+import copy
 import logz
 import numpy as np
 import os
@@ -19,10 +20,11 @@ np.set_printoptions(suppress=True, linewidth=180)
 class Net:
     """ Builds the newtork. """
 
-    def __init__(self, sess, data, args):
+    def __init__(self, sess, data, args, data2=None):
         self.sess = sess
         self.data = data
         self.args = args
+        self.data2 = data2
 
         # Obviously assumes we're using MNIST.
         self.x_dim = 28*28 
@@ -40,14 +42,19 @@ class Net:
             self.y_Bh1 = tf.nn.sigmoid(tf.layers.dense(self.x_BO, 100))
             self.y_pred_BC = tf.layers.dense(self.y_Bh1, self.num_classes)
 
-        self.weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-        self.num_weights = U.get_num_weights(self.weights)
+        # Handle the weights
+        self.weights       = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        self.weights_v     = U.vars_to_vector(self.weights)
+        self.num_weights   = U.get_num_weights(self.weights)
+        self.new_weights_v = tf.placeholder(tf.float32, shape=[self.num_weights])
+        self.update_wts_op = U.set_weights_from_vector(self.weights, self.new_weights_v)
+        
         self.correct_preds = tf.equal(tf.argmax(self.y_targ_BC, 1), 
                                       tf.argmax(self.y_pred_BC, 1))
-        self.accuracy = tf.reduce_mean(tf.cast(self.correct_preds, tf.float32))
+        self.accuracy = U.mean(tf.cast(self.correct_preds, tf.float32))
 
         # Construct objective and updaters
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+        self.loss = U.mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=self.y_targ_BC, logits=self.y_pred_BC)
         )
 
@@ -56,6 +63,15 @@ class Net:
         self.h_updaters = []
         self.grads = []
 
+        # Turn logits into log probabilities, needed for HMC gradient.
+        if args.algo == 'hmc':
+            self.nb = tf.shape(self.x_BO)[0]
+            self.y_targ_B     = tf.argmax(self.y_targ_BC, axis=1)
+            self.log_prob_BC  = tf.nn.log_softmax(self.y_pred_BC)
+            self.log_prob_B   = U.fancy_slice_2d(self.log_prob_BC, tf.range(self.nb), self.y_targ_B)
+            self.log_prob_lik = U.mean(self.log_prob_B)
+            self.grad_log_lik = tf.gradients(self.log_prob_lik, self.weights)
+
         for w in self.weights:
             grad = tf.gradients(self.loss, w)[0] # Extract the only list item.
             self.grads.append(grad)
@@ -63,7 +79,7 @@ class Net:
             if args.algo == 'hmc':
                 # For HMC, we need hyperparameters and their updaters.
                 hp = HyperParams(alpha=args.gamma_alpha, beta=args.gamma_beta)
-                self.updaters.append( HMCUpdater(w, grad, args, hp) )
+                self.updaters.append( HMCUpdater(w, grad, args, hp, self.sess) )
                 self.h_updaters.append( 
                         HyperUpdater(w, grad, args, hp, self.sess, self.num_train) 
                 )
@@ -75,6 +91,94 @@ class Net:
         # View a summary and initialize.
         self._print_summary()
         self.sess.run(tf.global_variables_initializer())
+
+
+    def hmc_update(self, xs, ys, hparams):
+        """ Performs HMC update, temporary then I'll put it in classes. 
+       
+        Most implementations online assume we call tf.gradients() on the
+        log_joint_prob for all the weights. This is the same as log p(theta,x),
+        but we don't need the prior here since I already have it in closed form.
+        Hence, the gradient is only for the log likelihood, which furthermore
+        depends on the appropriate class.
+
+        One key point is that we iterate through leapfrog iterations, THEN
+        iterate through weights. Don't do it the reverse, because one weight
+        change can affect the subsequent gradients, etc.
+        """
+        L = self.args.num_leapfrog
+        eps = self.args.leapfrog_step
+        feed = {self.x_BO: xs, self.y_targ_BC: ys}
+
+        # TODO: put all this in a TensorFlow graph?
+        # For now q_old, p_old, q_new, p_new, weights, grads are synchronized lists.
+        weights = self.sess.run(self.weights)  
+        q_old = np.copy(weights) # Position
+        p_old = []               # Momentum
+        for val in q_old:
+            p_old.append( np.random.normal(size=val.shape) )
+        q_new = copy.deepcopy(q_old)
+        p_new = copy.deepcopy(p_old)
+
+        grads_wrt_lik = self.sess.run(self.grad_log_lik, feed)
+
+        for ll in range(L):
+            # Half momentum and full position (later, do another half momentum).
+            norms = []
+
+            for (idx, grad) in enumerate(grads_wrt_lik):
+                norms.append(np.linalg.norm(grad))
+                # I think we want negative log probs then add the regularizer.
+                grad = -grad + (hparams[idx][1] * q_new[idx])
+                p_new[idx] = p_new[idx] - (0.5*eps) * grad
+                q_new[idx] = q_new[idx] + eps * p_new[idx]
+
+            # For the second half-momentum, we need to update our gradients. For
+            # this we need to assign the weights for the old network.
+            w_vec = np.concatenate([np.reshape(w,[-1]) for w in q_new], axis=0)
+            self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
+
+            grads_wrt_lik = self.sess.run(self.grad_log_lik, feed)
+            for (idx, grad) in enumerate(grads_wrt_lik):
+                grad = -grad + (hparams[idx][1] * q_new[idx]) # same computation...
+                p_new[idx] = p_new[idx] - (0.5*eps) * grad
+
+        # Negating momentum is not necessary
+
+        # M(H) Test. Full over the data. TODO: put in a class.
+        H_old = 0.5 * np.sum([np.linalg.norm(w)**2 for w in p_old]) # momentum!
+        H_new = 0.5 * np.sum([np.linalg.norm(w)**2 for w in p_new]) # momentum!
+
+        for idx,(wold,wnew) in enumerate(zip(q_old, q_new)):
+            H_old += -(0.5 * hparams[idx][1]) * np.linalg.norm(wold) **2
+            H_new += -(0.5 * hparams[idx][1]) * np.linalg.norm(wnew) **2
+        
+        iters_per_epoch_train = int(self.num_train / self.args.bsize)
+
+        # put in old net weights then get log lik for data
+        w_vec = np.concatenate([np.reshape(w,[-1]) for w in q_old], axis=0)
+        self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
+        for ii in range(iters_per_epoch_train):
+            xs, ys = self.data2.train.next_batch(self.args.bsize)
+            feed = {self.x_BO: xs, self.y_targ_BC: ys}
+            H_old += self.sess.run(self.log_prob_lik, feed)
+
+        w_vec = np.concatenate([np.reshape(w,[-1]) for w in q_new], axis=0)
+        self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
+        for ii in range(iters_per_epoch_train):
+            xs, ys = self.data2.train.next_batch(self.args.bsize)
+            feed = {self.x_BO: xs, self.y_targ_BC: ys}
+            H_new += self.sess.run(self.log_prob_lik, feed)
+
+        print(H_new,H_old)
+        test_stat = -H_new + H_old
+
+        if (np.log(np.random.random()) < test_stat):
+            # accept
+            pass # do nothing, q_new is already updated
+        else:
+            w_vec = np.concatenate([np.reshape(w,[-1]) for w in q_old], axis=0)
+            self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
 
     
     def train(self):
@@ -96,8 +200,11 @@ class Net:
             for ii in range(iters_per_epoch_train):
                 xs, ys = mnist.train.next_batch(args.bsize)
                 feed = {self.x_BO: xs, self.y_targ_BC: ys}
+
+                # For now just do the entire update here. Transfer to classes later.
                 if args.algo == 'hmc':
-                    sys.exit()
+                    assert len(hparams) == len(self.updaters)
+                    self.hmc_update(xs, ys, hparams)
                 else:
                     _, grads, loss = self.sess.run([self.train_op, self.grads, self.loss], feed)
 

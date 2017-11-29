@@ -64,13 +64,14 @@ class SGDUpdater:
 
 class HMCUpdater:
 
-    def __init__(self, w, g_w, args, hp):
+    def __init__(self, w, g_w, args, hp, sess):
         self.w = w
         self.g_w = g_w
         self.args = args
         self.hp = hp
+        self.sess = sess
 
-    def update(self):
+    def update(self, wd):
         """ Perform leapfrog steps here. """
         pass
 

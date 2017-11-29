@@ -110,6 +110,31 @@ def set_weights_from_vector(weights, new_weights_v):
 
 
 # ------------------------------------------------------------------------------
+# TF convenience functions to replicate numpy
+# ------------------------------------------------------------------------------
+
+# So we can avoid typing tf.clip_by_value, etc., in other code.
+clip = tf.clip_by_value
+
+def fancy_slice_2d(X, inds0, inds1):
+    """ Like numpy's X[inds0, inds1]. From OpenAI's code (for CS 294-112). """
+    inds0 = tf.cast(inds0, tf.int64)
+    inds1 = tf.cast(inds1, tf.int64)
+    shape = tf.cast(tf.shape(X), tf.int64)
+    ncols = shape[1]
+    Xflat = tf.reshape(X, [-1])
+    return tf.gather(Xflat, inds0 * ncols + inds1)
+
+def sum(x, axis=None, keepdims=False):
+    axis = None if axis is None else [axis]
+    return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
+
+def mean(x, axis=None, keepdims=False):
+    axis = None if axis is None else [axis]
+    return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
+
+
+# ------------------------------------------------------------------------------
 # Loading datasets
 # ------------------------------------------------------------------------------
 
