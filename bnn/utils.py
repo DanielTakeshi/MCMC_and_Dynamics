@@ -190,7 +190,7 @@ def list_of_minibatches(data, bsize, shuffle=True):
     X_train = data['X_train'][indices]
     y_train = data['y_train'][indices]
 
-    for i in range(0, N-bsize, bsize):
+    for i in range(0, N-bsize+1, bsize):
         data_lists['X_train'].append(X_train[i:i+bsize, :])
         data_lists['y_train'].append(y_train[i:i+bsize])
 
@@ -201,11 +201,11 @@ def list_of_minibatches(data, bsize, shuffle=True):
     # Now do validation.
     N = data['X_valid'].shape[0]
     indices = np.random.permutation(N)
-    X_train = data['X_valid'][indices]
-    y_train = data['y_valid'][indices]
+    X_valid = data['X_valid'][indices]
+    y_valid = data['y_valid'][indices]
 
-    for i in range(0, N-bsize, bsize):
-        data_lists['X_valid'].append(X_train[i:i+bsize, :])
-        data_lists['y_valid'].append(y_train[i:i+bsize])
+    for i in range(0, N-bsize+1, bsize):
+        data_lists['X_valid'].append(X_valid[i:i+bsize, :])
+        data_lists['y_valid'].append(y_valid[i:i+bsize])
 
     return data_lists

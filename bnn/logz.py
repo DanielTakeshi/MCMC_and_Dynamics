@@ -83,7 +83,7 @@ def dump_tabular():
     for key in G.log_headers:
         val = G.log_current_row.get(key, "")
         if hasattr(val, "__float__"): 
-            valstr = "%8.4g"%val
+            valstr = "%8.6g"%val
         else: 
             valstr = val
         print("| %20s | %20s |"%(key, valstr))

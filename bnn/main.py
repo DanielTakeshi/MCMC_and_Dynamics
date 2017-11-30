@@ -22,9 +22,9 @@ if __name__ == "__main__":
     # General settings
     pp.add_argument('--bsize', type=int, default=500,
                     help='batch size for HMC, really SGHMC...')
-    pp.add_argument('--epochs', type=int, default=100,
+    pp.add_argument('--epochs', type=int, default=1000,
                     help='batch size for HMC, really SGHMC...')
-    pp.add_argument('--seed', type=int, default=42,
+    pp.add_argument('--seed', type=int, default=44,
                     help='random seed')
     pp.add_argument('--wdecay', type=float, default=0.0002,
                     help='weight decay for regularization')
@@ -34,10 +34,12 @@ if __name__ == "__main__":
                     help='alpha for the hyperparameter gamma prior')
     pp.add_argument('--gamma_beta', type=float, default=1.0,
                     help='beta for the hyperparameter gamma prior')
-    pp.add_argument('--leapfrog_step', type=float, default=0.25,
+    pp.add_argument('--leapfrog_step', type=float, default=0.0010,
                     help='step size for leapfrog method')
     pp.add_argument('--num_leapfrog', type=int, default=2,
                     help='number of leapfrog steps')
+    pp.add_argument('--temperature', type=float, default=1.0,
+                    help='temperature so target is: U(...)/T + K(...)/T')
 
     # SGD and variants
     pp.add_argument('--lrate_sgd', type=float, default=0.01,
@@ -56,6 +58,7 @@ if __name__ == "__main__":
     assert args.algo in ['sgd', 'momentum', 'adam', 'rmsprop', 'hmc']
     assert args.algo_mh in ['mhnormal', 'mhminibatch', 'mhsublhd',
             'austeremh-c', 'austeremh-nc']
+    assert args.temperature >= 1.0
 
     # Set up the directory to log things.
     args.log_dir = "logs/mnist/seed_"+str(args.seed)

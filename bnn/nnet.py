@@ -14,6 +14,7 @@ import tensorflow as tf
 import time
 import utils as U
 from nnupdaters import (SGDUpdater, HMCUpdater, HyperUpdater, HyperParams)
+from collections import defaultdict
 np.set_printoptions(suppress=True, linewidth=180)
 
 
@@ -63,25 +64,17 @@ class Net:
         # Somewhat different, to make it easier to use HMC later.
         # For HMC, we need hyperparameters and their updaters.
         if args.algo == 'hmc':
-            self.hparams = tf.placeholder(shape=[None], dtype=tf.float32)
-            self.h_updaters = []
-            for w in self.weights:
-                hp = HyperParams(alpha=args.gamma_alpha, beta=args.gamma_beta)
-                self.h_updaters.append( 
-                        HyperUpdater(w, args, hp, self.sess, self.num_train) 
-                ) # Indeed I think `self.num_train`, not `args.bsize`.
-
-            ## # Finally the HMC class. We'll pass in self.hparams as a
-            ## # placeholder in the feed-dict.
-            ## self.HMC = HMCUpdater(self.sess, args, self.hparams, self.weights,
-            ##         self.new_weights_v, self.update_wts_op)
-
-            self.nb = tf.shape(self.x_BO)[0]
-            self.logprob_BC  = tf.nn.log_softmax(self.y_pred_BC)
-            self.logprob_B   = U.fancy_slice_2d(self.logprob_BC, tf.range(self.nb), self.y_targ_B)
-            self.logprob_lik = U.mean(self.logprob_B)
-            self.grad_loglik = tf.gradients(self.logprob_lik, self.weights)
-
+            self.hmc_updater = HMCUpdater(self.sess,
+                                          self.args,
+                                          self.x_BO,
+                                          self.y_targ_B,
+                                          self.y_pred_BC,
+                                          self.weights,
+                                          self.new_weights_v,
+                                          self.update_wts_op,
+                                          self.loss,
+                                          self.num_train,
+                                          self.data_mb_list)
         else:
             self.grads = []
             for w in self.weights:
@@ -94,119 +87,7 @@ class Net:
         self._print_summary()
         self.sess.run(tf.global_variables_initializer())
 
-
-    def hmc_update(self, xs, ys, hparams):
-        """ Performs HMC update, temporary then I'll put it in classes. 
-
-        This is one "update" so it must take one full step (or reject and reuse
-        the old one).
-       
-        Most implementations online assume we call tf.gradients() on the
-        log_joint_prob for all the weights. This is the same as log p(theta,x),
-        but we don't need the prior here since I already have it in closed form.
-        Hence, the gradient is only for the log likelihood, which furthermore
-        depends on the appropriate class.
-
-        One key point is that we iterate through leapfrog iterations, THEN
-        iterate through weights. Don't do it the reverse, because one weight
-        change can affect the subsequent gradients, etc.
-        """
-        L = self.args.num_leapfrog
-        eps = self.args.leapfrog_step
-        feed = {self.x_BO: xs, self.y_targ_B: ys}
-
-        # For now q_old, p_old, q_new, p_new, weights, grads are synchronized lists.
-        weights = self.sess.run(self.weights)  
-        pos_old = [] # Old Position
-        mom_old = [] # Old Momentum
-        for w in weights:
-            pos_old.append( np.copy(w) )
-            mom_old.append( np.random.normal(size=w.shape) )
-        pos_new = copy.deepcopy(pos_old)
-        mom_new = copy.deepcopy(mom_old)
-        assert len(weights) == len(pos_old) == len(mom_old) == len(pos_new) == len(mom_new)
-
-        # Quick sanity checks, gradients shouldn't be zero. For some of the
-        # _input_ layer it's 0 if the images are all 0 in those spots.
-        grads_wrt_lik = self.sess.run(self.grad_loglik, feed)
-        for g in grads_wrt_lik:
-            assert np.linalg.norm(g) > 1e-5
-            assert np.mean(np.abs(g)) > 1e-5
-
-        # Finally, leapfrogs. Half momentum, full position, half momentum.
-        for ll in range(L):
-            for (idx, grad) in enumerate(grads_wrt_lik):
-                # I think we want negative log probs then add the regularizer.
-                grad = -grad + (hparams[idx][1] * pos_new[idx])
-                mom_new[idx] += -(0.5*eps) * grad
-                pos_new[idx] += eps * mom_new[idx]
-
-            # For the second half-momentum, we need to update our gradients. For
-            # this we need to assign (i.e., update) the weights of the newtwork.
-            w_vec = np.concatenate([np.reshape(w,[-1]) for w in pos_new], axis=0)
-            self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
-            grads_wrt_lik = self.sess.run(self.grad_loglik, feed)
-
-            for (idx, grad) in enumerate(grads_wrt_lik):
-                # Same computation, with pos_new which was updated earlier.
-                grad = -grad + (hparams[idx][1] * pos_new[idx])
-                mom_new[idx] += -(0.5*eps) * grad
-
-
-        # Negate the momentum at the end. Not actually necessary with our
-        # kinetic energy formulation, I think ...
-        for idx in range(len(mom_new)):
-            mom_new[idx] = -mom_new[idx]
-
-        # M(H) Test. Full over the data. First, handle momentum.
-        K_old = 0.5 * np.sum([np.linalg.norm(w)**2 for w in mom_old])
-        K_new = 0.5 * np.sum([np.linalg.norm(w)**2 for w in mom_new])
-
-        # Handle U(theta) now. First, -log P(theta), the priors.
-        U_old = 0.0
-        U_new = 0.0
-
-        for idx,(wold,wnew) in enumerate(zip(pos_old,pos_new)):
-            # Pretty sure plambda is the same for both
-            plambda = hparams[idx][1]   
-            U_old += (0.5*plambda) * np.linalg.norm(wold)**2
-            U_new += (0.5*plambda) * np.linalg.norm(wnew)**2
-
-        # Let's go through the network with its CURRENT weights (which are the
-        # current positions since I assigned them earlier!). This computes the
-        # *negative* log prob of data given param, so `-log P(D|theta)`.
-        for ii in range(self.num_train_mbs):
-            xs = self.data_mb_list['X_train'][ii]
-            ys = self.data_mb_list['y_train'][ii]
-            feed = {self.x_BO: xs, self.y_targ_B: ys}
-            U_new +=  - np.sum( self.sess.run(self.logprob_B,feed) )
-
-        # Put in OLD neural network weights.
-        w_vec = np.concatenate([np.reshape(w,[-1]) for w in pos_old], axis=0)
-        self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
-
-        for ii in range(self.num_train_mbs):
-            xs = self.data_mb_list['X_train'][ii]
-            ys = self.data_mb_list['y_train'][ii]
-            feed = {self.x_BO: xs, self.y_targ_B: ys}
-            U_old +=  - np.sum( self.sess.run(self.logprob_B,feed) )
-
-        H_old = K_old + U_old
-        H_new = K_new + U_new
-        test_stat = -H_new + H_old
-
-        if (np.log(np.random.random()) < test_stat):
-            w_vec = np.concatenate([np.reshape(w,[-1]) for w in pos_new], axis=0)
-            self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
-            accept = 1
-        else:
-            accept = 0
-        print(H_old,H_new,accept)
-
-        info = {'accept': accept}
-        return info
-
-    
+   
     def train(self):
         args = self.args
         mnist = self.data
@@ -215,42 +96,39 @@ class Net:
         for ee in range(args.epochs):
             # Resample the hyperparameters if we're doing HMC.
             if args.algo == 'hmc':
-                hparams = []
-                for hp in self.h_updaters:
-                    hparams.append( hp.update() )
+                hparams = self.hmc_updater.update_hparams()
+                hmc_info = defaultdict(list)
 
             for ii in range(self.num_train_mbs):
                 xs = self.data_mb_list['X_train'][ii]
                 ys = self.data_mb_list['y_train'][ii]
                 if args.algo == 'hmc':
-                    hmc_info = self.hmc_update(xs, ys, hparams)
+                    info = self.hmc_updater.hmc(xs, ys, hparams)
+                    for key in info:
+                        hmc_info[key].append(info[key])
                 else:
                     feed = {self.x_BO: xs, self.y_targ_B: ys}
                     _, grads, loss = self.sess.run([self.train_op, self.grads, self.loss], feed)
-
-            # Check validation set performance after each epoch.
-            loss_valid = 0.
-            acc_valid = 0.
-
-            for ii in range(self.num_valid_mbs):
-                xs = self.data_mb_list['X_valid'][ii]
-                ys = self.data_mb_list['y_valid'][ii]
-                feed = {self.x_BO: xs, self.y_targ_B: ys}
-                acc, loss = self.sess.run([self.accuracy, self.loss], feed)
-                acc_valid += acc
-                loss_valid += loss
-
-            acc_valid /= self.num_valid_mbs
-            loss_valid /= self.num_valid_mbs
-
-            # Log after each epoch, if desired.
+        
+            # Log after each epoch, if desired and test on validation.
             if (ee % args.log_every_t_epochs == 0):
+                acc_valid, loss_valid = self._check_validation()                
+
                 print("\n  ************ Epoch %i ************" % (ee+1))
                 elapsed_time_hours = (time.time() - t_start) / (60.0 ** 2)
+
                 if args.algo == 'hmc':
                     for ww, hp in zip(self.weights, hparams):
-                        print("{:10} -- (plambda={:.3f}, wd={:.5f})".format(
-                            str(ww.get_shape().as_list()),hp[0],hp[1]))
+                        print("{:10} -- plambda={:.3f}".format(
+                            str(ww.get_shape().as_list()), hp))
+                    logz.log_tabular("HMCAcceptRateEpoch", np.mean(hmc_info['accept']))
+                    logz.log_tabular("KineticOldMean",     np.mean(hmc_info['K_old']))
+                    logz.log_tabular("KineticNewMean",     np.mean(hmc_info['K_new']))
+                    logz.log_tabular("PotentialOldMean",   np.mean(hmc_info['U_old']))
+                    logz.log_tabular("PotentialNewMean",   np.mean(hmc_info['U_new']))
+                    logz.log_tabular("HamiltonianOldMean", np.mean(hmc_info['H_old']))
+                    logz.log_tabular("HamiltonianNewMean", np.mean(hmc_info['H_new']))
+
                 logz.log_tabular("ValidAcc",  acc_valid)
                 logz.log_tabular("ValidLoss", loss_valid)
                 logz.log_tabular("TimeHours", elapsed_time_hours)
@@ -258,13 +136,30 @@ class Net:
                 logz.dump_tabular()
 
 
+    def _check_validation(self):
+        """ Check validation set performance, normally after each epoch. """
+        loss_valid = 0.
+        acc_valid = 0.
+
+        for ii in range(self.num_valid_mbs):
+            xs = self.data_mb_list['X_valid'][ii]
+            ys = self.data_mb_list['y_valid'][ii]
+            feed = {self.x_BO: xs, self.y_targ_B: ys}
+            acc, loss = self.sess.run([self.accuracy, self.loss], feed)
+            acc_valid += acc
+            loss_valid += loss
+
+        acc_valid /= self.num_valid_mbs
+        loss_valid /= self.num_valid_mbs
+        return acc_valid, loss_valid
+
+
     def test(self):
         args = self.args
         mnist = self.data
-        total_iters = int(self.num_test / args.bsize)
-        feed = {self.x_BO: mnist.test.images, self.y_targ_BC: mnist.test.labels}
+        feed = {self.x_BO: self.data['X_test'], self.y_targ_B: self.data['y_test']}
         accuracy = self.sess.run(self.accuracy, feed)
-        print("test accuracy: {}".format(accuracy))
+        print("test set accuracy: {}".format(accuracy))
 
 
     # ---------
@@ -287,9 +182,10 @@ class Net:
                 print("- {} shape:{} size:{}".format(g.name, shp, np.prod(shp)))
 
         if self.args.algo == 'hmc':
-            print("hyperparams:")
-            for hu in self.h_updaters:
-                print("- hp with size:{}".format(hu.size))
+            #print("hyperparams:")
+            #for hu in self.h_updaters:
+            #    print("- hp with size:{}".format(hu.size))
+            pass
 
         print("\nnum_train_mbs: {}".format(self.num_train_mbs))
         print("num_valid_mbs: {}".format(self.num_valid_mbs))
