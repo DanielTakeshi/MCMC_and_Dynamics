@@ -129,10 +129,11 @@ class Net:
                     logz.log_tabular("HamiltonianOldMean", np.mean(hmc_info['H_old']))
                     logz.log_tabular("HamiltonianNewMean", np.mean(hmc_info['H_new']))
 
-                logz.log_tabular("ValidAcc",  acc_valid)
-                logz.log_tabular("ValidLoss", loss_valid)
-                logz.log_tabular("TimeHours", elapsed_time_hours)
-                logz.log_tabular("Epochs",    ee)
+                logz.log_tabular("ValidAcc",    acc_valid)
+                logz.log_tabular("ValidLoss",   loss_valid)
+                logz.log_tabular("Temperature", args.temperature)
+                logz.log_tabular("TimeHours",   elapsed_time_hours)
+                logz.log_tabular("Epochs",      ee)
                 logz.dump_tabular()
 
 

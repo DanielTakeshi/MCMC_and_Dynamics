@@ -1,6 +1,12 @@
 *.DS_Store
 *.swp
+*.swo
+
+*.pyc
 *.ipynb_checkpoints
 */__pycache__/*
+
 hmc/draft_figures/*
 data/
+bnn/figures/
+bnn/logs/
