@@ -169,8 +169,8 @@ class Net:
         for idx,(wold,wnew) in enumerate(zip(pos_old,pos_new)):
             # Pretty sure plambda is the same for both
             plambda = hparams[idx][1]   
-            U_old += -(0.5*plambda) * np.linalg.norm(wold)**2
-            U_new += -(0.5*plambda) * np.linalg.norm(wnew)**2
+            U_old += (0.5*plambda) * np.linalg.norm(wold)**2
+            U_new += (0.5*plambda) * np.linalg.norm(wnew)**2
 
         # Let's go through the network with its CURRENT weights (which are the
         # current positions since I assigned them earlier!). This computes the
@@ -290,5 +290,8 @@ class Net:
             print("hyperparams:")
             for hu in self.h_updaters:
                 print("- hp with size:{}".format(hu.size))
+
+        print("\nnum_train_mbs: {}".format(self.num_train_mbs))
+        print("num_valid_mbs: {}".format(self.num_valid_mbs))
 
         print("\n=== DONE WITH SUMMARY ===\n")
