@@ -2,10 +2,10 @@
 To reduce clutter.  BTW: at some point I need my own personal library of this
 rather than copying and pasting.
 """
+import gzip, pickle, os, sys
 import numpy as np
-import os
-import sys
 import tensorflow as tf
+from collections import defaultdict
 
 
 # ------------------------------------------------------------------------------
@@ -139,15 +139,13 @@ def mean(x, axis=None, keepdims=False):
 # ------------------------------------------------------------------------------
 
 def load_dataset(name):
-    """ Given dataset, return train, valid, test sets. 
+    """ Given dataset, return train, valid, test sets. And length stats.
     
     For MNIST, the pickled data is from Python 2, gah. Fortunately this blog
     helped: http://www.mlblog.net/2016/09/reading-mnist-in-python3.html. The
     train, val, and test are both tuples with the first and second elements as
-    the data and labels. Arrange things in a dictionary. Also for now we're
-    combining the training and validation into the `train` set as there's no
-    need for validation here. GANs are actually resistant to overfitting as they
-    can never actually see the real images.
+    the data and labels. Arrange things in a dictionary. BTW it is already
+    downscaled apropriately to [0,1].
     """
     if name == 'mnist':
         with gzip.open('../data/mnist.pkl.gz','rb') as ff:
@@ -155,16 +153,25 @@ def load_dataset(name):
             u.encoding = 'latin1'
             train, val, test = u.load()
         data = {}
-        data['X_train'] = np.concatenate( (train[0],val[0]), axis=0 )
-        data['y_train'] = np.concatenate( (train[1],val[1]), axis=0 )
+        data['X_train'] = train[0]
+        data['y_train'] = train[1]
+        data['X_valid'] = val[0]
+        data['y_valid'] = val[1]
         data['X_test'] = test[0]
         data['y_test'] = test[1]
-        print("X_train.shape: {} (+valid)".format(data['X_train'].shape))
-        print("Y_train.shape: {} (+valid)".format(data['y_train'].shape))
-        print("X_test.shape:  {}".format(data['X_test'].shape))
-        print("y_test.shape:  {}".format(data['y_test'].shape))
+        print("\nWe loaded MNIST. Shapes:")
+        print("  X_train.shape: {}".format(data['X_train'].shape))
+        print("  y_train.shape: {}".format(data['y_train'].shape))
+        print("  X_valid.shape: {}".format(data['X_valid'].shape))
+        print("  y_valid.shape: {}".format(data['y_valid'].shape))
+        print("  X_test.shape:  {}".format(data['X_test'].shape))
+        print("  y_test.shape:  {}".format(data['y_test'].shape))
         assert (0.0 <= np.min(data['X_train']) and np.max(data['X_train']) <= 1.0)
-        return data
+        print("(assertion passed, values are in [0,1])\n")
+        stats = {'num_train': len(data['y_train']), 
+                 'num_valid': len(data['y_valid']), 
+                 'num_test':  len(data['y_test'])}
+        return (data, stats)
     else:
         raise ValueError("Dataset name {} is not valid".format(name))
 
@@ -190,4 +197,15 @@ def list_of_minibatches(data, bsize, shuffle=True):
     first = data_lists['X_train'][0].shape
     last  = data_lists['X_train'][-1].shape
     assert first == last, "{} vs {} w/bs {}".format(first, last, bsize)
+
+    # Now do validation.
+    N = data['X_valid'].shape[0]
+    indices = np.random.permutation(N)
+    X_train = data['X_valid'][indices]
+    y_train = data['y_valid'][indices]
+
+    for i in range(0, N-bsize, bsize):
+        data_lists['X_valid'].append(X_train[i:i+bsize, :])
+        data_lists['y_valid'].append(y_train[i:i+bsize])
+
     return data_lists

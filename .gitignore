@@ -3,3 +3,4 @@
 *.ipynb_checkpoints
 */__pycache__/*
 hmc/draft_figures/*
+data/

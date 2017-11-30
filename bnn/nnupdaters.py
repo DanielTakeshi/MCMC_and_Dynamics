@@ -63,15 +63,19 @@ class SGDUpdater:
 
 
 class HMCUpdater:
+    # TODO in progress
 
-    def __init__(self, w, g_w, args, hp, sess):
-        self.w = w
-        self.g_w = g_w
-        self.args = args
-        self.hp = hp
+    def __init__(self, sess, args, hparams, weights, new_weights, update_op):
         self.sess = sess
+        self.args = args
+        self.hparams = hparams
+        self.weights = weights
+        self.new_weights = new_weights
+        self.update_op = update_op
+        assert len(self.hparams) == len(self.weights)
 
-    def update(self, wd):
+
+    def update(self):
         """ Perform leapfrog steps here. """
         pass
 
@@ -85,14 +89,13 @@ class HyperUpdater:
     epochs.  (I thought we did once, but then it's not a prior!)
     """
 
-    def __init__(self, w, g_w, args, hp, sess, num_train):
+    def __init__(self, w, args, hp, sess, bsize):
         self.w = w
-        self.g_w = g_w
         self.args = args
         self.hp = hp
         self.sess = sess
         self.size = np.prod( (self.w).get_shape().as_list() )
-        self.num_train = num_train
+        self.bsize = bsize
 
     def update(self):
         """ Perform the Gibbs steps and returns weight decay. 
@@ -107,5 +110,5 @@ class HyperUpdater:
         beta    = self.hp.beta + 0.5 * sq_norm
 
         plambda = np.random.gamma( alpha, 1.0 / beta )
-        weight_decay = plambda / self.num_train
+        weight_decay = plambda / self.bsize # I _think_ self.bsize is OK ...
         return (plambda, weight_decay)
