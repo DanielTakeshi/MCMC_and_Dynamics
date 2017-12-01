@@ -36,7 +36,7 @@ if __name__ == "__main__":
                     help='beta for the hyperparameter gamma prior')
     pp.add_argument('--leapfrog_step', type=float, default=0.0010,
                     help='step size for leapfrog method')
-    pp.add_argument('--num_leapfrog', type=int, default=2,
+    pp.add_argument('--num_leapfrog', type=int, default=3,
                     help='number of leapfrog steps')
     pp.add_argument('--temperature', type=float, default=1.0,
                     help='temperature so target is: U(...)/T + K(...)/T')

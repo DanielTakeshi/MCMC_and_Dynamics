@@ -31,6 +31,7 @@ import sys
 import tensorflow as tf
 import utils as U
 import collections
+from mh import (MHNormal, MHMinibatch, MHSubLhd, AustereMH)
 HyperParams = collections.namedtuple('HyperParams', 'alpha beta')
 
 
@@ -133,16 +134,31 @@ class HMCUpdater:
         self.U = self.neg_logprior + (self.num_train * self.neg_logprob)
         self.U_grads = tf.gradients(self.U, self.weights)
 
+        # Finally, the Metropolis test.
+        params = {
+            'sess': self.sess, 'args': self.args, 'weights': self.weights,
+            'data_mb_list': self.data_mb_list, 'x_BO': self.x_BO, 
+            'y_targ_B': self.y_targ_B, 'new_weights_v': self.new_weights_v,
+            'hparams': self.hparams, 'neg_logprior': self.neg_logprior,
+            'logprob_sum': self.logprob_sum, 'update_wts_op': self.update_wts_op 
+        }
+        if args.algo_mh == 'mhnormal':
+            self.mhtest = MHNormal(params)
+        elif args.algo_mh == 'mhminibatch':
+            self.mhtest = MHMinibatch(params)
+        elif args.algo_mh == 'mhsublhd':
+            self.mhtest = MHSubLhd(params)
+        elif args.algo_mh == 'austeremh-c':
+            self.mhtest = AustereMH(params, conservative=True)
+        elif args.algo_mh == 'austeremh-nc':
+            self.mhtest = AusteremH(params, conservative=False)
+        else:
+            raise ValueError()
+
     
     def update_hparams(self):
         """ Updates hyperparameters. """
         return [hp.update() for hp in self.h_updaters]
-
-
-    def _assign(self, new_weights):
-        """ Take `new_weights` (a list of np.arrays) and assign to network. """
-        w_vec = np.concatenate([np.reshape(w,[-1]) for w in new_weights], axis=0)
-        self.sess.run(self.update_wts_op, {self.new_weights_v: w_vec})
 
 
     def hmc(self, xs, ys, hparams):
@@ -186,7 +202,7 @@ class HMCUpdater:
                 pos_new[idx] += eps * mom_new[idx]
 
             # Get new gradients.
-            self._assign(new_weights=pos_new)
+            U.assign(self.sess, self.update_wts_op, self.new_weights_v, pos_new)
             grads_wrt_U = self.sess.run(self.U_grads, feed_l)
 
             for (idx, grad) in enumerate(grads_wrt_U):
@@ -195,46 +211,8 @@ class HMCUpdater:
         # Negate momentum. Not actually necessary w/our kinetic energy, I think.
         mom_new = [-m for m in mom_new]
 
-        # ----------------------------------------------------------------------
-        # M(H) Test. Full over the data. First, handle momentum.
-        # Later: put this in my custom class.
-        # ----------------------------------------------------------------------
-        K_old = 0.5 * np.sum([np.linalg.norm(w)**2 for w in mom_old])
-        K_new = 0.5 * np.sum([np.linalg.norm(w)**2 for w in mom_new])
-
-        # Handle U(theta) now. First, handle CURRENT/NEW weights.
-        U_new = self.sess.run(self.neg_logprior, {self.hparams: hparams})
-        for ii in range(self.num_train_mbs):
-            xs = self.data_mb_list['X_train'][ii]
-            ys = self.data_mb_list['y_train'][ii]
-            feed = {self.x_BO: xs, self.y_targ_B: ys, self.hparams: hparams}
-            U_new -= self.sess.run(self.logprob_sum,feed)
-
-        # Now do U(theta_old). Assign theta_old weights.
-        self._assign(new_weights=pos_old)
-        U_old = self.sess.run(self.neg_logprior, {self.hparams: hparams})
-
-        for ii in range(self.num_train_mbs):
-            xs = self.data_mb_list['X_train'][ii]
-            ys = self.data_mb_list['y_train'][ii]
-            feed = {self.x_BO: xs, self.y_targ_B: ys, self.hparams: hparams}
-            U_old -= self.sess.run(self.logprob_sum, feed)
-
-        # Collect information.
-        H_old = U_old + K_old
-        H_new = U_new + K_new
-        test_stat = -H_new + H_old
-
-        if (np.log(np.random.random()) < test_stat):
-            self._assign(new_weights=pos_new)
-            accept = 1
-        else:
-            accept = 0
-        print(H_old,H_new,accept)
-
-        info = {'accept': accept, 'K_old':K_old, 'K_new':K_new, 'U_old':U_old,
-                'U_new':U_new, 'H_old':H_old, 'H_new':H_new}
-        return info
+        # Run the Metropolis test using whatever method.
+        return self.mhtest.test(hparams, mom_old, mom_new, pos_old, pos_new)
 
 
 class HyperUpdater:
@@ -253,6 +231,7 @@ class HyperUpdater:
         self.sess = sess
         self.size = np.prod( (self.w).get_shape().as_list() )
         self.bsize = bsize
+
 
     def update(self):
         """ Perform the Gibbs steps and returns weight decay. 

@@ -21,10 +21,10 @@ np.set_printoptions(edgeitems=180, linewidth=180, suppress=True)
 # Some matplotlib settings.
 FIGDIR = 'figures/'
 title_size = 22
-tick_size = 18
-legend_size = 17
-ysize = 18
-xsize = 18
+tick_size = 17
+legend_size = 15
+ysize = 17
+xsize = 17
 lw = 2
 ms = 8
 error_region_alpha = 0.3
@@ -33,7 +33,8 @@ error_region_alpha = 0.3
 ATTRIBUTES = ["ValidAcc", "HMCAcceptRateEpoch", "ValidLoss", 
         "HamiltonianOldMean", "HamiltonianNewMean"]
 COLORS = ['red', 'blue', 'yellow', 'black', 'orange']
-DIR_TO_LABEL = {'seed_43': 'mb=500, L=3, eps=0.000l, T=1', 
+DIR_TO_LABEL = {'seed_42': 'mb=500, L=3, eps=0.001,  T=1', 
+                'seed_43': 'mb=500, L=3, eps=0.0001, T=1', 
                 'seed_44': 'mb=500, L=3, eps=0.001,  T=10',
                 'seed_45': 'mb=500, L=3, eps=0.01,   T=100'}
 
@@ -45,7 +46,7 @@ def plot_one_directory(args, dirnames, figname):
     """
     logdir = args.logdir
     num = int((len(ATTRIBUTES)+1) / 2)
-    fig, axes = subplots(nrows=num, ncols=2, figsize=(14,4*num))
+    fig, axes = subplots(nrows=num, ncols=2, figsize=(16,5*num))
 
     for (dd, cc) in zip(dirnames, COLORS):
         A = np.genfromtxt(join(logdir, dd, 'log.txt'), 

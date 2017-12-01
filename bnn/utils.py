@@ -109,6 +109,21 @@ def set_weights_from_vector(weights, new_weights_v):
     return net_set_params
 
 
+def assign(sess, update_op, new_weights_ph, new_weights):
+    """ Another convenience method, used to assign weights in my HMC code.
+    
+    Assumes that the update operation was already created by (for instance)
+    `utils.set_weights_from_vector()`. 
+
+    Parameters
+    ----------
+    `new_weights_ph` is a Tensorflow placeholder, whereas `new_weights` is a
+    list of np.arrays.
+    """
+    w_vec = np.concatenate([np.reshape(w,[-1]) for w in new_weights], axis=0)
+    sess.run(update_op, {new_weights_ph: w_vec})
+
+
 # ------------------------------------------------------------------------------
 # TF convenience functions to replicate numpy
 # ------------------------------------------------------------------------------
