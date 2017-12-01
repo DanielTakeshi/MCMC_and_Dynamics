@@ -115,7 +115,7 @@ class MHNormal(MHTest):
             accept = 1
         else:
             accept = 0
-        print(H_old,H_new,accept)
+        # print(H_old,H_new,accept)
 
         info = {'accept': accept, 'K_old':K_old, 'K_new':K_new, 'U_old':U_old,
                 'U_new':U_new, 'H_old':H_old, 'H_new':H_new}

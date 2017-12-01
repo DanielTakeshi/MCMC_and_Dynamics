@@ -1,29 +1,39 @@
-# Bayesian Neural Networks
+# Bayesian Neural Networks with Hamiltonian Monte Carlo
 
-This code is based on [Tianqi Chen's code for SGHMC][1].
+Versions:
 
-A few pointers/questions:
+- Python 3.5.3
+- TensorFlow 1.4.0
 
-- I'm not seeing any value of `m`, the number of Leapfrog steps. Looks like Chen
-  just did one time, so `L=1` using the notation from (Neal, 2010).
+Example Usage:
 
-- The mass matrix `M` is assumed some multiple of the identity matrix, so we can
-  update momentum, and then add it to theta. In general we have to assume the
-  step sizes absorb lots of constants.
+```
+python main.py --leapfrog_step 0.001 --temperature 10 --num_leapfrog 3 --seed 50
+```
 
-- Hyper-parameters are indeed updated via Gibbs steps, which I know in detail.
+See my [accompanying blog post][2] for a description. (Note: I will fix it on
+December 2 to reflect my exact implementation, but the basic idea should still
+apply.)
 
-- Chen combined the updates for SGLD and SGHMC into one updater.
 
-- Not mentioned in the paper, but Chen uses weight decay on all the weights to
-  impose the assumed Gaussian prior on the weights. Or, maybe it's common
-  knowledge. (If confused, [see the CS 231n notes][2], and it's helpful to do
-  the derivation.)
+This code is largely based on [Tianqi Chen's code for SGHMC][1] along with
+Radford Neal's perspective on Bayesian Neural Networks using Hamiltonian Monte
+Carlo.
 
-- Notation: `i_[...]` for inputs, `o_[...]` for outputs, `w` for weights, `g_w`
-  for gradients, and `m_w` for momentums.
 
-- TODO: utilize TensorFlow for gradients and get similar results.
+## TODOs
+
+- Implement the more sophisticated Metropolis-Hastings tests.
+
+- Add a schedule for the temperature parameter.
+
+- Add scripts to experiment with different hyperparameters, including adjusting
+  the mass matrix.
+
+- Adaptively adjust the leapfrog step size based on the acceptance rate.
+
+- Benchmark with SGD, and if benchmarking with RMSProp and Adam, consider
+  adjusting the leapfrog so that I use this information. (How?!?)
 
 [1]:https://github.com/tqchen/ML-SGHMC
-[2]:http://cs231n.github.io/linear-classify/
+[2]:https://danieltakeshi.github.io/2017/11/26/basics-of-bayesian-neural-networks/

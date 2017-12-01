@@ -36,6 +36,7 @@ COLORS = ['red', 'blue', 'yellow', 'black', 'orange']
 DIR_TO_LABEL = {'seed_42': 'mb=500, L=3, eps=0.001,  T=1', 
                 'seed_43': 'mb=500, L=3, eps=0.0001, T=1', 
                 'seed_44': 'mb=500, L=3, eps=0.001,  T=10',
+                'seed_50': 'mb=500, L=3, eps=0.001,  T=10',
                 'seed_45': 'mb=500, L=3, eps=0.01,   T=100'}
 
 
