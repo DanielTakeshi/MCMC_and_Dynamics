@@ -5,6 +5,8 @@
 """
 import numpy as np
 import sys
+np.set_printoptions(suppress=True, edgeitems=10, linewidth=180)
+
 
 # Full connected layer
 # note: all memory are pre-allocated, always use a[:]= instead of a= in assignment
@@ -17,8 +19,8 @@ class FullLayer:
         self.i_node = i_node
         self.o_node = o_node
         # weight
-        self.o2i_edge = np.float32( np.random.randn( i_node.shape[1], o_node.shape[1] ) * init_sigma )
-        self.o2i_bias = np.zeros( o_node.shape[1], 'float32' ) 
+        self.o2i_edge = np.float32(np.random.randn(i_node.shape[1], o_node.shape[1]) * init_sigma)
+        self.o2i_bias = np.zeros(o_node.shape[1], 'float32') 
         # gradient
         self.g_o2i_edge = np.zeros_like( self.o2i_edge )
         self.g_o2i_bias = np.zeros_like( self.o2i_bias )
@@ -35,12 +37,12 @@ class FullLayer:
 
     def backprop( self, passgrad = True ):
         # backprop, gradient is stored in o_node
-        # divide by batch size
+        # divide by batch size (Daniel: REMEMBER this division by batch size!)
         bscale = 1.0 / self.o_node.shape[0]
         self.g_o2i_edge[:] = bscale * np.dot( self.i_node.T, self.o_node )
         self.g_o2i_bias[:] = np.mean( self.o_node, 0 )
         
-        # record second moment of gradient if needed
+        # record second moment of gradient if needed (Daniel: never used)
         if self.rec_gsqr:
             self.o_square[:] = np.square( self.o_node )
             self.i_square[:] = np.square( self.i_node )
@@ -174,11 +176,15 @@ class NNetwork:
         self.updaters = factory.create_hyperupdater( self.updaters ) + self.updaters
 
     def update( self, xdata, ylabel ):
-        """ Update based on one minibatch of data. """
+        """ Update based on one minibatch of data. 
+        
+        After each minibatch goes forward and backwards to get gradients, we
+        update the updaters.
+        (not hyperparameters).
+        """
         self.i_node[:] = xdata
         for i in range( len(self.layers) ):
             self.layers[i].forward( True )
-
         self.o_label[:] = ylabel
         for i in reversed( range( len(self.layers) ) ):
             self.layers[i].backprop( i!= 0 )
@@ -186,7 +192,7 @@ class NNetwork:
             u.update()
 
     def update_all( self, xdatas, ylabels ):
-        """ Called by external code, starts the updating pipeline. """
+        """ Called by external code in `mnist.py`, starts the pipeline. """
         for i in range( xdatas.shape[0] ):            
             self.update( xdatas[i], ylabels[i] )
         for u in self.updaters:
@@ -200,7 +206,10 @@ class NNetwork:
 
 
 class NNEvaluator:
-    """ Evaluator to evaluate results. """
+    """ 
+    Evaluator to evaluate results. One instance of this class corresponds to the
+    training, validation, or testing setups.  
+    """
 
     def __init__( self, nnet, xdatas, ylabels, param, prefix='' ):
         self.nnet = nnet
@@ -212,36 +221,93 @@ class NNEvaluator:
         assert xdatas.shape[0] == ylabels.shape[0]
         assert nbatch == xdatas.shape[1]
         assert nbatch == ylabels.shape[1]
+        # By default, of shape (100,500,10).
+        # We have 100 minibatches, each with 500 elements and 10 classes.
         self.o_pred  = np.zeros( ( xdatas.shape[0], nbatch, nclass ), 'float32'  )
         self.rcounter = 0
         self.sum_wsample = 0.0
 
+
     def __get_alpha( self ):
+        """
+        Daniel: by default, ignore the first 50 samples as burn-in so for the
+        first 50 epochs we simply get alpha = 1.0. (Also, I think Tianqi refers
+        to a sample as one epoch ... so there are 750 samples we really track
+        for the SGHMC results.) Then we multiply the output predictions by
+        1-alpha which is ... 0 to start. I guess that's fine, we override later.
+
+        After the burn-in, we multiply our predictions by our alpha parameter
+        which will decrease their values. This should not change raw accuracy,
+        but it will change the neg-log-lik. By default, param.wsample=1 so that
+        this turns into 1/2 for epoch 50, then 1/3 for epoch 51, then 1/4 for
+        epoch 52, etc.  I see, it looks like he does moving averages.
+
+        This alpha is NOT to be confused with the alpha used for momentum decay,
+        the `1-alpha = mu` term!!
+        """
         if self.rcounter < self.param.num_burn:
             return 1.0
         else:
             self.sum_wsample += self.param.wsample
             return self.param.wsample / self.sum_wsample
         
+
     def eval( self, rcounter, fo ):
+        """ Prints out evaluation of train, test, or valid after each epoch.
+
+        The outer for loop predicts on _minibatches_. By default:
+
+            > self.xdatas[i].shape: (nbatch,784)
+            > self.o_pred[i,:].shape: (nbatch,10)
+
+        with nbatch=500. Also, the predictions are **normalized**, it's NOT
+        logits but the actual softmax-ed and normalized values. Without the `i`
+        index, these would have a new dimension of size 100 by default, the
+        number of minibatches total.
+
+        Number of incorrect predictions: `sum_bad`, so use that for error.
+        Also return negative log likelihood, which we want to _minimize_.
+        Iterate through the number of elements in this minibatch and compute:
+
+            > log P(y_i | x_i, theta)
+
+        Then both of these are averaged over the number of total samples.
+
+        After 50 burn-in epochs, we start doing a moving average by storing the
+        previous predictions and getting new predictions by:
+
+            > preds = (1-alpha)*prev_preds + alpha*new_preds
+
+        with alpha annealed from 1/n where n is the number of epochs **after**
+        the burn-in period, so n=1 at epoch 50, etc. Thus, by the time we're at
+        epoch 800, new predictions are weighed so little. This methodology means
+        that our predictions at epoch K are the AVERAGE across the K epochs thus
+        far (again, not counting burn-in epochs).
+
+        BTW this is the same thing as taking every 100 samples, because there
+        are 100 minibatches, but we only take the one that appears at the end of
+        each epoch.
+        """
         self.rcounter = rcounter
         alpha = self.__get_alpha()        
         self.o_pred[:] *= ( 1.0 - alpha )
-        sum_bad  = 0.0
+        sum_bad = 0.0
         sum_loglike = 0.0
-       
-        for i in range( self.xdatas.shape[0] ):
+
+        for i in range(self.xdatas.shape[0]):
             self.o_pred[i,:] += alpha * self.nnet.predict( self.xdatas[i] )
             y_pred = np.argmax( self.o_pred[i,:], 1 )            
-            sum_bad += np.sum(  y_pred != self.ylabels[i,:] )
-            for j in range( self.xdatas.shape[1] ):
-                sum_loglike += np.log( self.o_pred[ i , j, self.ylabels[i,j] ] )
+            sum_bad += np.sum( y_pred != self.ylabels[i,:] )
+            for j in range(self.xdatas.shape[1]):
+                sum_loglike += np.log( self.o_pred[i, j, self.ylabels[i,j]] )
 
         ninst = self.ylabels.size
-        fo.write( ' %s-err:%f %s-nlik:%f' % ( self.prefix, sum_bad/ninst, self.prefix, -sum_loglike/ninst) )
+        fo.write( ' %s-err:%f %s-nlik:%f\n' % 
+                ( self.prefix, sum_bad/ninst, self.prefix, -sum_loglike/ninst) )
 
 
 class NNParam:
+    """ Called during main `mnist.py` so that we get a set of hyperparams. """
 
     def __init__( self ):
         # network type
@@ -296,7 +362,10 @@ class NNParam:
         self.rcounter = 0       
 
     def gap_hcounter( self ):
-        # how many steps before resample hyper parameter
+        """ How many steps before resample hyper parameter. 
+        
+        Daniel: by default it's 100 since that means the end of each epoch.
+        """
         return int(self.gap_hsample * self.num_train / self.batch_size)
 
     def adapt_decay( self, rcounter ):
@@ -352,6 +421,8 @@ class NNParam:
         information, and effectively we do SGD+momentum. (Well, wait, that first
         iteration still has noisy gradients ... but that's fine as that's normal
         SGD+momentum!!)
+
+        Called from the SGHMCUpdater's update method.
         """
         if self.start_sample == None:
             return False
@@ -359,7 +430,10 @@ class NNParam:
             return self.rcounter >= self.start_sample
 
     def need_hsample( self ):
-        # whether we need to sample hyper parameter now
+        """ 
+        Like with the other samles, we always re-sample hyperparameters after
+        the first eopch.
+        """
         if self.start_hsample == None:
             return False
         else:

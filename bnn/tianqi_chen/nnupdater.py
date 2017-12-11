@@ -57,7 +57,7 @@ class SGHMCUpdater:
         if param.need_sample():
             # For SGLD this is the Gaussian noise for exploration.
             # For SGHMC this is the exgtra Gaussian noise added.
-            self.m_w[:] += np.random.randn( self.w.size ).reshape( self.w.shape ) * param.get_sigma()
+            self.m_w[:] += np.random.randn(self.w.size).reshape(self.w.shape) * param.get_sigma()
         # Weights are `self.w`, updated from the computed momentums.
         self.w[:] += self.m_w
         
@@ -100,12 +100,16 @@ class HyperUpdater:
 
     def update( self ):
         """ 
-        Update hyper parameters. The stuff on the Gibbs step is most important. 
+        Update hyper parameters, which here results in the weight decay params.
+        Note the Gibbs step. These are then fixed for the next epoch.
         """
+        # Do not update hyperparameters during first epoch (index=0).
         param = self.param
         if not param.need_hsample():
             return
 
+        # Only update hyperparameters every `param.gap_hcounter() = 100`
+        # iterations which corespond to the _end_ of each epoch.
         self.scounter += 1
         if self.scounter % param.gap_hcounter() != 0:
             return
@@ -116,6 +120,7 @@ class HyperUpdater:
         # has only one element in it so we do this separately.
         sumsqr = sum( np.sum( u.w * u.w ) for u in self.updaterlist )
         sumcnt = sum( u.w.size for u in self.updaterlist )
+
         # Conjugate update for Gammas. (See Wikipedia or my blog post if confused.)
         alpha = param.hyper_alpha + 0.5 * sumcnt
         beta  = param.hyper_beta + 0.5 * sumsqr
@@ -125,13 +130,14 @@ class HyperUpdater:
             # note: normally MAP adjust is not as well as MCMC
             plambda = max( alpha - 1.0, 0.0 ) / beta
         else:
-            # note: use the shape/rate parameterization. However we need to
-            # invert the rate parameter to turn it into a scale parameter.
-            # This is only for ONE lambda (so one of lambda_A OR lambda_B, etc.,
-            # from the SGHMC paper) since this is a scalar, obviously.
+            # Use the shape/rate parameterization. However we need to invert the
+            # rate parameter to turn it into a scale parameter.  This is only
+            # for ONE lambda (so one of lambda_A OR lambda_B, etc., from the
+            # SGHMC paper) since this is a scalar, obviously.
             plambda = np.random.gamma( alpha, 1.0 / beta )
 
-        # Set new weight decay, equivalent to Gaussian prior on weights.
+        # Set new weight decay, equivalent to Gaussian prior on weights. DIVIDE
+        # BY THE NUMBER OF TRAINING POINTS, which is 50k for MNIST by default.
         wd = plambda / param.num_train
         for u in self.updaterlist:
             u.wd = wd
