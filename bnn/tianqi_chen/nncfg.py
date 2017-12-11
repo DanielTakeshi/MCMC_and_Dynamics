@@ -1,5 +1,5 @@
 """
-  Implementation of neutral network 
+  Implementation of neural network 
   network configurations
   Tianqi Chen
 """
@@ -8,8 +8,10 @@ import nnupdater
 import numpy as np
 
 class NNFactory:
+
     def __init__( self, param ):
         self.param = param
+
     def create_updater( self, w, g_w, sg_w ):
         if self.param.updater == 'sgd':
             return nnupdater.SGDUpdater( w, g_w, self.param )
@@ -52,6 +54,7 @@ class NNFactory:
         else:
             raise('NNConfig', 'unknown out_type')
         
+
 def softmax( param ):
     factory = NNFactory( param )
     # setup network for softmax

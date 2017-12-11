@@ -35,6 +35,8 @@ class SGHMCUpdater:
     into the epsilon learning rate. This way, after updating momentum, the theta
     update is literally theta_{t+1} <- theta_t + eps_k * r_t where r_t is
     momentum.
+
+    Update: yes I did the math. Whew, it took a while but was worth it. :-)
     """
 
     def __init__( self, w, g_w, param ):
@@ -51,9 +53,10 @@ class SGHMCUpdater:
     def update( self ):
         param = self.param
         self.m_w[:] *= ( 1.0 - param.mdecay ) # Ignore during SGLD.
-        self.m_w[:] += (-param.eta) * ( self.g_w + self.wd * self.w )
+        self.m_w[:] += (-param.eta) * ( self.g_w + self.wd * self.w ) # Gaussian prior here!
         if param.need_sample():
-            # E.g. during SGLD this is the Gaussian noise for exploration.
+            # For SGLD this is the Gaussian noise for exploration.
+            # For SGHMC this is the exgtra Gaussian noise added.
             self.m_w[:] += np.random.randn( self.w.size ).reshape( self.w.shape ) * param.get_sigma()
         # Weights are `self.w`, updated from the computed momentums.
         self.w[:] += self.m_w

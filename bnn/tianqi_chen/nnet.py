@@ -295,12 +295,12 @@ class NNParam:
         # round counter
         self.rcounter = 0       
 
-    # how many steps before resample hyper parameter
     def gap_hcounter( self ):
+        # how many steps before resample hyper parameter
         return int(self.gap_hsample * self.num_train / self.batch_size)
 
-    # adapt learning rate and momentum, if necessary
     def adapt_decay( self, rcounter ):
+        # adapt learning rate and momentum, if necessary
         # adapt decay ratio
         if self.init_eta == None:
             self.init_eta = self.eta
@@ -323,36 +323,48 @@ class NNParam:
         self.eta = d_eta * self.init_eta
         self.mdecay = d_mom * self.init_mdecay
         
-    # set current round 
     def set_round( self, rcounter ):
         self.rcounter = rcounter
         self.adapt_decay( rcounter )
         if self.updater == 'sgld':
             assert np.abs( self.mdecay - 1.0 ) < 1e-6
 
-    # get noise level for sampler
     def get_sigma( self ):
+        """ Returns the **standard deviation**, not the variance!!
+
+        Daniel: the `var = 2 * eta * mdecay` part is straight from the paper.
+        But note the temperature ... AND the division by the entire training
+        data size!
+        """
         if self.mdecay - 1.0 > -1e-5 or self.updater == 'sgld':
             scale = self.eta / self.num_train
         else:
             scale = self.eta * self.mdecay / self.num_train
         return np.sqrt( 2.0 * self.temp * scale ) 
     
-    # whether we need to sample weight now
     def need_sample( self ):
+        """ 
+        Daniel (this assumes default settings): self.start_sample=1 so we're
+        never in the first case. The round starts at 0 so for the _first_ epoch
+        we do NOT sample, so we don't add Gaussian noise at all. But for all 799
+        remaining epochs, rcounter >= 1 obviously so we sample. This might be
+        why the first epoch results in fast convergence as we only use gradient
+        information, and effectively we do SGD+momentum. (Well, wait, that first
+        iteration still has noisy gradients ... but that's fine as that's normal
+        SGD+momentum!!)
+        """
         if self.start_sample == None:
             return False
         else:
             return self.rcounter >= self.start_sample
 
-    # whether we need to sample hyper parameter now
     def need_hsample( self ):
+        # whether we need to sample hyper parameter now
         if self.start_hsample == None:
             return False
         else:
             return self.rcounter >= self.start_hsample
 
-    # whether the network need to provide second moment of gradient
     def rec_gsqr( self ):
+        # whether the network need to provide second moment of gradient
         return False
-
