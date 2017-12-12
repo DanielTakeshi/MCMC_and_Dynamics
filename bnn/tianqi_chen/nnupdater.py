@@ -51,14 +51,24 @@ class SGHMCUpdater:
         return
 
     def update( self ):
+        """ Performs the SGHMC update.
+
+        - By default, self.wd is set to starting value for first epoch.
+        - The (1-mdecay) isignored during SGLD.
+        - Gaussian prior happens with wd * w
+        - need_sample: For SGLD this is the Gaussian noise for exploration.
+        - need_sample: For SGHMC this is the exgtra Gaussian noise added.
+        - need_sample is true for all epochs _after_ the first one, at index 0.
+          Well, by default...
+
+        Most of the effort is with updating momentum, since the actual _weight_
+        update is simple given the momentums.
+        """
         param = self.param
-        self.m_w[:] *= ( 1.0 - param.mdecay ) # Ignore during SGLD.
-        self.m_w[:] += (-param.eta) * ( self.g_w + self.wd * self.w ) # Gaussian prior here!
+        self.m_w[:] *= ( 1.0 - param.mdecay ) 
+        self.m_w[:] += (-param.eta) * ( self.g_w + self.wd * self.w ) 
         if param.need_sample():
-            # For SGLD this is the Gaussian noise for exploration.
-            # For SGHMC this is the exgtra Gaussian noise added.
             self.m_w[:] += np.random.randn(self.w.size).reshape(self.w.shape) * param.get_sigma()
-        # Weights are `self.w`, updated from the computed momentums.
         self.w[:] += self.m_w
         
 

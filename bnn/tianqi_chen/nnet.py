@@ -102,7 +102,6 @@ class SoftmaxLayer:
         self.i_node[:] = np.exp( self.i_node - np.max( self.i_node, 1 ).reshape( nbatch, 1 ) )
         self.i_node[:] = self.i_node / np.sum( self.i_node, 1 ).reshape( nbatch, 1 )
 
-        
     def backprop( self, passgrad = True ):
         if passgrad:
             nbatch = self.i_node.shape[0]
@@ -179,8 +178,7 @@ class NNetwork:
         """ Update based on one minibatch of data. 
         
         After each minibatch goes forward and backwards to get gradients, we
-        update the updaters.
-        (not hyperparameters).
+        update the updaters (not hyperparameters).
         """
         self.i_node[:] = xdata
         for i in range( len(self.layers) ):
@@ -302,7 +300,7 @@ class NNEvaluator:
                 sum_loglike += np.log( self.o_pred[i, j, self.ylabels[i,j]] )
 
         ninst = self.ylabels.size
-        fo.write( ' %s-err:%f %s-nlik:%f\n' % 
+        fo.write( ' %s-err:%f %s-nlik:%f' % 
                 ( self.prefix, sum_bad/ninst, self.prefix, -sum_loglike/ninst) )
 
 
@@ -361,6 +359,7 @@ class NNParam:
         # round counter
         self.rcounter = 0       
 
+
     def gap_hcounter( self ):
         """ How many steps before resample hyper parameter. 
         
@@ -368,8 +367,12 @@ class NNParam:
         """
         return int(self.gap_hsample * self.num_train / self.batch_size)
 
+
     def adapt_decay( self, rcounter ):
-        # adapt learning rate and momentum, if necessary
+        """ Adapt learning rate and momentum, if necessary.
+        
+        Daniel: by default, this is never called in the code as start_decay=None.
+        """
         # adapt decay ratio
         if self.init_eta == None:
             self.init_eta = self.eta
@@ -392,11 +395,13 @@ class NNParam:
         self.eta = d_eta * self.init_eta
         self.mdecay = d_mom * self.init_mdecay
         
+
     def set_round( self, rcounter ):
         self.rcounter = rcounter
         self.adapt_decay( rcounter )
         if self.updater == 'sgld':
             assert np.abs( self.mdecay - 1.0 ) < 1e-6
+
 
     def get_sigma( self ):
         """ Returns the **standard deviation**, not the variance!!
@@ -411,6 +416,7 @@ class NNParam:
             scale = self.eta * self.mdecay / self.num_train
         return np.sqrt( 2.0 * self.temp * scale ) 
     
+
     def need_sample( self ):
         """ 
         Daniel (this assumes default settings): self.start_sample=1 so we're
@@ -429,15 +435,17 @@ class NNParam:
         else:
             return self.rcounter >= self.start_sample
 
+
     def need_hsample( self ):
         """ 
-        Like with the other samles, we always re-sample hyperparameters after
+        Like with the other samples, we always re-sample hyperparameters after
         the first eopch.
         """
         if self.start_hsample == None:
             return False
         else:
             return self.rcounter >= self.start_hsample
+
 
     def rec_gsqr( self ):
         # whether the network need to provide second moment of gradient
