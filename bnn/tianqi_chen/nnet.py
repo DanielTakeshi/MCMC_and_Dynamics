@@ -308,6 +308,10 @@ class NNParam:
     """ Called during main `mnist.py` so that we get a set of hyperparams. """
 
     def __init__( self ):
+        """ 
+        These are just defaults. The script that calls things, `mnist-sghmc.py`
+        will override.
+        """
         # network type
         self.net_type = 'mlp2'
         self.node_type = 'sigmoid'

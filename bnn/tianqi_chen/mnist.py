@@ -11,6 +11,7 @@ import nncfg
 import numpy as np
 import nnet
 
+
 # load MNIST dataset
 def load(digits, dataset = "training", path = "."):
     """
@@ -48,8 +49,14 @@ def load(digits, dataset = "training", path = "."):
 
     return images, labels
 
-# default parameters
+
 def cfg_param():
+    """ Default parameters.
+
+    In scripts that call this (`experients/mnist-sghmc.py` default), we will
+    modify or adjust values of the `param` object, so that place has higher
+    priority. However, use this method for MNIST-specific stuff.
+    """
     param = nnet.NNParam()
     param.init_sigma = 0.01
     # input size, for mnist, it is 28*28
@@ -61,6 +68,7 @@ def cfg_param():
     param.wd = 0.00002
     param.batch_size = 500
     return param
+
 
 def run_exp( param ):
     np.random.seed( param.seed )
