@@ -447,6 +447,9 @@ class NNParam:
         """
         if self.start_hsample == None:
             return False
+        # Added by Daniel
+        elif self.updater == 'sgd' or self.updater == 'nag':
+            return False
         else:
             return self.rcounter >= self.start_hsample
 

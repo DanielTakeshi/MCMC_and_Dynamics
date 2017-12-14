@@ -12,6 +12,8 @@ import mnist
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--algo', type=str)
+    parser.add_argument('--eta', type=float)
+    parser.add_argument('--wd', type=float)
     parser.add_argument('--seed', type=int)
     args = parser.parse_args()
     assert (args.algo is not None) and (args.seed is not None)
@@ -24,7 +26,7 @@ if __name__ == "__main__":
 
     param.seed = args.seed
     param.batch_size = 500
-    param.num_round = 1000 # I changed from 800 -> 1000 
+    param.num_round  = 1000 # I changed from 800 -> 1000 
     param.num_hidden = 100
 
     # change the following line to PATH/TO/MNIST dataset
@@ -41,9 +43,12 @@ if __name__ == "__main__":
     # number of burn-in round, start averaging after num_burn round
     param.num_burn = 50
 
-    # learning rate
-    param.eta=0.1
-    # alpha, momentum decay
+    # learning rate, actually this is \gamma for SGHMC as we later divide by
+    # 50k. I think this is the same as \epsilon in the paper for SGD/SGLD
+    param.eta = args.eta
+    param.wd  = args.wd
+
+    # alpha, momentum decay. This should be fixed.
     param.mdecay=0.01
     
     # run the experiment

@@ -54,8 +54,8 @@ class SGHMCUpdater:
         """ Performs the SGHMC update.
 
         - By default, self.wd is set to starting value for first epoch.
-        - The (1-mdecay) isignored during SGLD.
-        - Gaussian prior happens with wd * w
+        - The (1-mdecay) is ignored during SGLD.
+        - Gaussian prior happens with wd * w.
         - need_sample: For SGLD this is the Gaussian noise for exploration.
         - need_sample: For SGHMC this is the exgtra Gaussian noise added.
         - need_sample is true for all epochs _after_ the first one, at index 0.
