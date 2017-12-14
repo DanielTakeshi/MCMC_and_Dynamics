@@ -74,15 +74,18 @@ def parse(directories):
 
         # Add to our lists.
         errors_v.append(results[:,0])
-        errors_t.append(results[:,1])
-        neglogliks_v.append(results[:,2])
+        neglogliks_v.append(results[:,1])
+        errors_t.append(results[:,2])
         neglogliks_t.append(results[:,3])
 
     errors_v = np.array(errors_v)
     errors_t = np.array(errors_t)
     neglogliks_v = np.array(neglogliks_v)
     neglogliks_t = np.array(neglogliks_t)
-    print("errors_v.shape: {}".format(errors_v.shape))
+    print("\nerrors_v.shape: {}".format(errors_v.shape))
+    print("errors_t.shape: {}".format(errors_t.shape))
+    print("neglogliks_v.shape: {}".format(neglogliks_v.shape))
+    print("neglogliks_t.shape: {}".format(neglogliks_t.shape))
     return errors_v, errors_t, neglogliks_v, neglogliks_t
 
 
@@ -107,7 +110,11 @@ def plot(dirs):
     for cc,name in zip(colors,plot_names):
         directories = plot_names[name]
         errors_v, errors_t, neglogliks_v, neglogliks_t = parse(directories)
+        assert len(errors_v) == len(errors_t) == len(neglogliks_v) == len(neglogliks_t)
         assert errors_v.shape[0] < errors_v.shape[1]
+        assert np.max(errors_v) < 1.0 and np.max(errors_t) < 1.0
+        assert np.min(errors_v) > 0.0 and np.min(errors_t) > 0.0
+        assert np.min(neglogliks_v) > 0.0 and np.min(neglogliks_t) > 0.0
 
         mean_err_v = np.mean(errors_v, axis=0)
         mean_lik_v = np.mean(neglogliks_v, axis=0)
@@ -120,6 +127,7 @@ def plot(dirs):
         std_lik_t  = np.std(neglogliks_t, axis=0)
 
         xcoords = np.arange(len(mean_err_v))
+        assert len(mean_err_t) == len(xcoords) == 1000
         axarr_plot(axarr, 0, 0, xcoords, mean_err_v, std_err_v, cc, name)
         axarr_plot(axarr, 0, 1, xcoords, mean_lik_v, std_lik_v, cc, name)
         axarr_plot(axarr, 1, 0, xcoords, mean_err_t, std_err_t, cc, name)
@@ -132,12 +140,12 @@ def plot(dirs):
             axarr[row,col].tick_params(axis='x', labelsize=tick_size)
             axarr[row,col].tick_params(axis='y', labelsize=tick_size)
             axarr[row,col].legend(loc="best", prop={'size':legend_size})
-            if row == 0:
+            if col == 0:
                 axarr[row,col].set_ylabel("Classification Error", fontsize=ysize)
-                axarr[row,col].set_ylim([0.015, 0.06])
+                axarr[row,col].set_ylim([0.00, 0.15])
             else:
                 axarr[row,col].set_ylabel("Negative Log Likelihood", fontsize=ysize)
-                axarr[row,col].set_ylim([0, 0.3])
+                axarr[row,col].set_ylim([0, 1.0])
     axarr[0,0].set_title("Valid Set Error", fontsize=title_size)
     axarr[0,1].set_title("Valid Set NegLogLik", fontsize=title_size)
     axarr[1,0].set_title("Test Set Error", fontsize=title_size)
