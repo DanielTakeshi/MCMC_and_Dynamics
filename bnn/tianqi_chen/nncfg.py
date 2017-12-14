@@ -13,7 +13,7 @@ class NNFactory:
         self.param = param
 
     def create_updater( self, w, g_w, sg_w ):
-        if self.param.updater == 'sgd':
+        if self.param.updater == 'sgd' or self.param.updater == 'momsgd':
             return nnupdater.SGDUpdater( w, g_w, self.param )
         elif self.param.updater == 'sghmc' or self.param.updater == 'sgld':
             if self.param.updater == 'sgld':
@@ -22,7 +22,7 @@ class NNFactory:
         elif self.param.updater == 'nag':
             return nnupdater.NAGUpdater( w, g_w, self.param )
         else:
-            raise('NNConfig', 'unknown updater')
+            raise Exception('NNConfig', 'unknown updater')
 
     def create_hyperupdater( self, updaterlist ):
         if self.param.hyperupdater == 'none':
@@ -34,7 +34,7 @@ class NNFactory:
             # have in my blog post; each weight gets its own sampled h-params.
             return [ nnupdater.HyperUpdater( self.param, [u] ) for u in updaterlist ]
         else:
-            raise('NNConfig', 'unknown hyperupdater')
+            raise Exception('NNConfig', 'unknown hyperupdater')
 
     def create_olabel( self ):
         param = self.param
@@ -52,7 +52,7 @@ class NNFactory:
         elif param.out_type == 'logistic':
             return nnet.RegressionLayer( o_node, o_label, param )
         else:
-            raise('NNConfig', 'unknown out_type')
+            raise Exception('NNConfig', 'unknown out_type')
         
 
 def softmax( param ):
