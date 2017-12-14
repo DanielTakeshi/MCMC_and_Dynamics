@@ -7,7 +7,12 @@ import numpy as np
 import sys
 
 class SGDUpdater:
-    """ updater that performs SGD update given weight parameter """
+    """ updater that performs SGD update given weight parameter 
+    
+    This is normal SGD if param.mdecay = 1.0, and momentum if othewise. Usually
+    we set param.mdecay to be 0.01, I think. That way the **momentum** variable
+    is one minus that ... and it's usually 0.99.
+    """
 
     def __init__( self, w, g_w, param ):
         self.w = w
@@ -51,10 +56,10 @@ class SGHMCUpdater:
         return
 
     def update( self ):
-        """ Performs the SGHMC update.
+        """ Performs the SGHMC (or SGLD) update.
 
         - By default, self.wd is set to starting value for first epoch.
-        - The (1-mdecay) is ignored during SGLD.
+        - The (1-mdecay) is ignored during SGLD, see `nncfg.py`.
         - Gaussian prior happens with wd * w.
         - need_sample: For SGLD this is the Gaussian noise for exploration.
         - need_sample: For SGHMC this is the exgtra Gaussian noise added.
@@ -73,7 +78,12 @@ class SGHMCUpdater:
         
 
 class NAGUpdater:
-    """ updater that performs NAG(nestrov's momentum) update given weight parameter """
+    """ updater that performs NAG(nestrov's momentum) update given weight parameter 
+    
+    Question: seems like this is similar to SGHMC ... due to the added Gaussian
+    noise? Yeah, my guess is this is supposed to make SGHMC have a Nesterov-like
+    update. Gah.
+    """
 
     def __init__( self, w, g_w, param ):
         self.w = w
@@ -82,7 +92,7 @@ class NAGUpdater:
         self.wd = param.wd
         self.param = param
         self.m_w = np.zeros_like( w )
-        self.m_old = np.zeros_like( w )
+        self.m_old = np.zeros_like( w ) # Only difference with SGHMC
 
     def print_info( self ):
         return
