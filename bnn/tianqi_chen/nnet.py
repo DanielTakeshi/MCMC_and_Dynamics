@@ -443,9 +443,9 @@ class NNParam:
     def need_hsample( self ):
         """ 
         Like with the other samples, we always re-sample hyperparameters after
-        the first eopch.
+        the first eopch. Update: don't re-sample if we're using sgd or mom+sgd.
         """
-        if self.start_hsample == None:
+        if self.start_hsample==None or self.updater=='sgd' or self.updater=='momsgd':
             return False
         else:
             return self.rcounter >= self.start_hsample
