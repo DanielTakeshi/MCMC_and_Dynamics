@@ -4,8 +4,8 @@
 - Best SGD Valid: wd 0.0001, eta 0.5, 0.02414
 - Best SGD Test: wd 0.0001, eta 0.5, 0.02144
 
-- Best MOMSGD Valid: wd 0.00001, eta 0.1, 0.01676
-- Best MOMSGD Test: wd 0.00001, eta 0.1, 0.01586
+- Best MOMSGD Valid: wd 0.00001, eta 0.5, 0.01676
+- Best MOMSGD Test: wd 0.00001, eta 0.5, 0.01586
 
 - Best SGLD Valid: eta 0.5, 0.0255
 - Best SGLD Test: eta 0.5, 0.02276

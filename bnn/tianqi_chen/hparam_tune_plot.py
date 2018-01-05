@@ -40,7 +40,7 @@ xsize = 18
 lw = 3
 ms = 8
 
-COLORS = ['red', 'blue', 'yellow', 'black']
+COLORS = ['red', 'blue', 'yellow', 'black', 'purple', 'orange']
 LOGDIR = 'experiments/logs/'
 FIGDIR = 'experiments/figures/'
 METHOD = 'sgld' # NOTE this is what we adjust!
@@ -102,7 +102,10 @@ def axarr_plot(axarr, row, col, xcoords, mean, std, cc, name):
 def plot_2x2(dirs):
     nrows = 2
     ncols = 2
-    eta_terms  = ['0.001', '0.01', '0.1', '0.5']
+    if METHOD == 'sgld':
+        eta_terms = ['0.1', '0.4', '0.8', '1.0', '1.2', '1.4']
+    else:
+        eta_terms = ['0.001', '0.01', '0.1', '0.5']
     fig, axarr = plt.subplots(nrows=nrows, ncols=ncols, figsize=(10*ncols,8*nrows))
 
     for eta, cc in zip(eta_terms, COLORS):

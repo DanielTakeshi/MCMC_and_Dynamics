@@ -31,8 +31,8 @@ if __name__ == "__main__":
 
     # change the following line to PATH/TO/MNIST dataset
     # param.path_data = '../../../../../data/image/mnist/' # Tianqi's machine
-    # param.path_data = '/home/daniel/mnist/' # My machine
-    param.path_data = '/home/seita/MCMC_and_Dynamics/data/' # Triton
+    param.path_data = '/home/daniel/MCMC_and_Dynamics/data/' # My machine
+    #param.path_data = '/home/seita/MCMC_and_Dynamics/data/' # Triton
 
     # network type
     param.net_type = 'mlp2'
