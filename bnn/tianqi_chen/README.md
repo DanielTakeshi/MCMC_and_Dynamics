@@ -1,5 +1,7 @@
 # Results from Prior Work
 
+(Edit: these are old, but basically the results I see reaffirm that MOMSGD is
+better than SGHMC when *both* algorithms are sufficiently tuned.)
 
 - Best SGD Valid: wd 0.0001, eta 0.5, 0.02414
 - Best SGD Test: wd 0.0001, eta 0.5, 0.02144

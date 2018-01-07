@@ -43,7 +43,7 @@ ms = 8
 COLORS = ['red', 'blue', 'yellow', 'black', 'purple', 'orange']
 LOGDIR = 'experiments/logs/'
 FIGDIR = 'experiments/figures/'
-METHOD = 'sgld' # NOTE this is what we adjust!
+METHOD = 'sghmc' # NOTE this is what we adjust!
 SEEDS  = 5
 
 
@@ -104,8 +104,8 @@ def plot_2x2(dirs):
     ncols = 2
     if METHOD == 'sgld':
         eta_terms = ['0.1', '0.4', '0.8', '1.0', '1.2', '1.4']
-    else:
-        eta_terms = ['0.001', '0.01', '0.1', '0.5']
+    elif METHOD == 'sghmc':
+        eta_terms = ['0.01', '0.05', '0.08', '0.1', '0.2', '0.4']
     fig, axarr = plt.subplots(nrows=nrows, ncols=ncols, figsize=(10*ncols,8*nrows))
 
     for eta, cc in zip(eta_terms, COLORS):
@@ -179,8 +179,12 @@ def plot_8x2(dirs):
     """
     nrows = 8
     ncols = 2
-    eta_terms  = ['0.001', '0.01', '0.1', '0.5']
-    wd_terms   = ['0.0', '0.00001', '0.0001', '0.001']
+    if METHOD == 'sgd':
+        eta_terms = ['0.1', '0.4', '0.7', '1.0', '1.3']
+        wd_terms  = ['0.0001']
+    elif METHOD == 'momsgd':
+        eta_terms = ['0.01', '0.1', '0.4', '0.5', '0.7', '1.0']
+        wd_terms  = ['0.00001']
     wd_offsets = [(0,0), (0,1), (1,0), (1,1)]
     fig, axarr = plt.subplots(nrows=nrows, ncols=ncols, figsize=(10*ncols,8*nrows))
 
