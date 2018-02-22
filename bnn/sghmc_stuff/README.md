@@ -1,6 +1,6 @@
 # To Compare SGHMC and MOMSGD
 
-Use the commands:
+Change directory into `experiments`. Use the commands:
 
 - `./benchmark_sghmc.sh`
 - `./benchmark_momsgd.sh`
