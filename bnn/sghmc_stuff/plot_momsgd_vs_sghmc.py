@@ -1,11 +1,5 @@
 """
-(c) December 2017 by Daniel Seita
-
-By default, directories were saved in the directory:
-
-    experiments/logs/nag-seed-1 
-
-And each of these files looks like this:
+Benchmarks SGHMC versus MOM+SGD. I saved log files looking like this:
 
 [0] train-err:0.111780 train-nlik:0.469018 valid-err:0.109600 valid-nlik:0.465617 test-err:0.107300 test-nlik:0.438589
 [1] train-err:0.073440 train-nlik:0.251816 valid-err:0.070900 valid-nlik:0.264946 test-err:0.074100 test-nlik:0.253118
@@ -17,37 +11,33 @@ And each of these files looks like this:
 
 So I parse that and collect everything into one figure. 
 
-Update: I had to remove a few lines from 3 SGHMC results due to overflow errors.
-But it should work. It's not a big deal, it was just once out of 1000 epochs.
+(c) February 2018 by Daniel Seita
 """
-
-import argparse
-import gym
-import matplotlib
+import argparse, matplotlib, os, pickle, sys
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import pickle
-import sys
 np.set_printoptions(edgeitems=100, linewidth=100, suppress=True)
+
+# CHANGE DIRECTORIES AS NEEDED
+FIGDIR  = 'experiments/figures/'
+MOMSGD  = 'experiments/logs-momsgd/'
+SGHMC   = 'experiments/logs-sghmc/'
+VERSION = 1
+R_SEEDS = 50
 
 # Some matplotlib settings.
 plt.style.use('seaborn-darkgrid')
 error_region_alpha = 0.25
-LOGDIR = 'experiments/logs/'
-FIGDIR = 'experiments/figures/'
-title_size = 22
-tick_size = 17
-legend_size = 17
-ysize = 18
-xsize = 18
-lw = 3
-ms = 8
+title_size = 26
+tick_size = 21
+legend_size = 21
+xsize, ysize = 21, 21
+lw, ms = 3, 8
 colors = ['red', 'blue', 'yellow', 'black']
 
 
-def parse(directories):
+def parse(directories, head_dir):
     """ Parse line based on the pattern we know (see comments at the top). """
     errors_v = []
     errors_t = []
@@ -55,7 +45,8 @@ def parse(directories):
     neglogliks_t = []
 
     for dd in directories:
-        with open(LOGDIR+dd, 'r') as f:
+        print("Now on directory: {}".format(dd))
+        with open(head_dir+dd, 'r') as f:
             all_lines = [x.strip('\n').split(':') for x in f.readlines()]
         
         # Look at indices 3, 4, 5, 6, since we know the exact form.
@@ -95,21 +86,24 @@ def axarr_plot(axarr, row, col, xcoords, mean, std, cc, name):
             alpha=error_region_alpha, facecolor=cc)
 
 
-def plot(dirs):
-    plot_names = {
-        'nag':   [d for d in dirs if 'nag-seed' in d],
-        'sgd':   [d for d in dirs if 'sgd-seed' in d],
-        'sgld':  [d for d in dirs if 'sgld-seed' in d],
-        'sghmc': [d for d in dirs if 'sghmc-seed' in d]
-    }
+def plot(momsgd_dirs, sghmc_dirs):
+    """ Take a screenshot of the appropriate figure and put it in the paper.
 
-    # Top row: validation error and then neg log-like.
-    # Bottom row: test error and then neg log-like.
-    fig,axarr = plt.subplots(2, 2, figsize=(20,16))
+    Top row: validation error and then neg log-like.
+    Bottom row: test error and then neg log-like.
+    """
+    fig,axarr = plt.subplots(2, 2, figsize=(22,14))
+    stuff_to_plot = [
+        (momsgd_dirs, MOMSGD, "SGD+Mom, {} Trials".format(R_SEEDS)),
+        (sghmc_dirs, SGHMC, "SGHMC, {} Trials".format(R_SEEDS)),
+    ]
 
-    for cc,name in zip(colors,plot_names):
-        directories = plot_names[name]
-        errors_v, errors_t, neglogliks_v, neglogliks_t = parse(directories)
+    # Iterate through MOMSGD, then SGHMC. 
+    for cc,info in zip(colors,stuff_to_plot):
+        dirs, head_dir, name = info
+        print("\nNow on algorithm with dir {}, with {} logged dirs.\n".format(
+                head_dir, len(dirs)))
+        errors_v, errors_t, neglogliks_v, neglogliks_t = parse(dirs, head_dir)
         assert len(errors_v) == len(errors_t) == len(neglogliks_v) == len(neglogliks_t)
         assert errors_v.shape[0] < errors_v.shape[1]
         assert np.max(errors_v) < 1.0 and np.max(errors_t) < 1.0
@@ -133,7 +127,7 @@ def plot(dirs):
         axarr_plot(axarr, 1, 0, xcoords, mean_err_t, std_err_t, cc, name)
         axarr_plot(axarr, 1, 1, xcoords, mean_lik_t, std_lik_t, cc, name)
 
-    # Bells and whistles
+    # Bells and whistles. Tweak these.
     for row in range(2):
         for col in range(2):
             axarr[row,col].set_xlabel("Epochs (# MCMC Samples)", fontsize=xsize)
@@ -142,19 +136,21 @@ def plot(dirs):
             axarr[row,col].legend(loc="best", prop={'size':legend_size})
             if col == 0:
                 axarr[row,col].set_ylabel("Classification Error", fontsize=ysize)
-                axarr[row,col].set_ylim([0.00, 0.15])
+                axarr[row,col].set_ylim([0.014, 0.026])
             else:
                 axarr[row,col].set_ylabel("Negative Log Likelihood", fontsize=ysize)
-                axarr[row,col].set_ylim([0, 1.0])
-    axarr[0,0].set_title("Valid Set Error", fontsize=title_size)
-    axarr[0,1].set_title("Valid Set NegLogLik", fontsize=title_size)
-    axarr[1,0].set_title("Test Set Error", fontsize=title_size)
-    axarr[1,1].set_title("Test Set NegLogLik", fontsize=title_size)
+                axarr[row,col].set_ylim([0.040, 0.140])
+    axarr[0,0].set_title("SGHMC vs SGD+Mom, Tuned H-Params, Validation Error", fontsize=title_size)
+    axarr[0,1].set_title("SGHMC vs SGD+Mom, Tuned H-Params, Validation NegLogLik", fontsize=title_size)
+    axarr[1,0].set_title("SGHMC vs SGD+Mom, Tuned H-Params, Test Error", fontsize=title_size)
+    axarr[1,1].set_title("SGHMC vs SGD+Mom, Tuned H-Params, Test NegLogLik", fontsize=title_size)
     plt.tight_layout()
-    plt.savefig(FIGDIR+"verify_sghmc_results.png")
+    savedir = FIGDIR+"sghmc_vs_momsgd_v"+str(VERSION).zfill(2)+".png"
+    print("\nJust saved figure: {}".format(savedir))
+    plt.savefig(savedir)
 
 
 if __name__ == "__main__":
-    dirs = sorted([e for e in os.listdir(LOGDIR) if 'seed' in e])
-    print("Plotting one figure for the directories: {}".format(dirs))
-    plot(dirs)
+    momsgd = sorted([x for x in os.listdir(MOMSGD) if 'seed' in x])
+    sghmc  = sorted([x for x in os.listdir(SGHMC) if 'seed' in x])
+    plot(momsgd, sghmc)
