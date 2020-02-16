@@ -13,8 +13,4 @@ code up for quickly testing different algorithms and problem cases.
 
 - `bnn`: Bayesian Neural Networks
 
-Note: I adjusted the `bnn` directory so that I can more extensively test Tianqi
-Chen's code with more random seeds. See the bash script there. **TODO**: get a
-plotting script set up for that!
-
 [1]:http://bair.berkeley.edu/blog/2017/08/02/minibatch-metropolis-hastings/
